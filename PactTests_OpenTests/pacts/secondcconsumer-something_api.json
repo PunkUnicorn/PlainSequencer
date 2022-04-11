@@ -1,0 +1,35 @@
+{
+  "consumer": {
+    "name": "SecondCConsumer"
+  },
+  "provider": {
+    "name": "Something API"
+  },
+  "interactions": [
+    {
+      "description": "A GET request for more detail for item id 00000003",
+      "providerState": "Given there is more detail for item id 00000003",
+      "request": {
+        "method": "get",
+        "path": "/second/00000003",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+          "detail": "More detail for id 00000003"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}

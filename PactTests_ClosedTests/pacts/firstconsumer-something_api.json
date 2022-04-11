@@ -1,0 +1,32 @@
+{
+  "consumer": {
+    "name": "FirstConsumer"
+  },
+  "provider": {
+    "name": "Something API"
+  },
+  "interactions": [
+    {
+      "description": "A GET request to touch the endpoint",
+      "providerState": "There is an active endpoint",
+      "request": {
+        "method": "get",
+        "path": "/",
+        "headers": {
+          "Accept": "text/plain"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}

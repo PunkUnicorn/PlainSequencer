@@ -1,0 +1,73 @@
+{
+  "consumer": {
+    "name": "SecondAConsumer"
+  },
+  "provider": {
+    "name": "Something API"
+  },
+  "interactions": [
+    {
+      "description": "A GET request for more detail for item id 00000001",
+      "providerState": "Given there is more detail for item id 00000001",
+      "request": {
+        "method": "get",
+        "path": "/second/00000001",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+          "detail": "More detail for id 00000001"
+        }
+      }
+    },
+    {
+      "description": "A GET request for more detail for item id 00000002",
+      "providerState": "Given there is more detail for item id 00000002",
+      "request": {
+        "method": "get",
+        "path": "/second/00000002",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 410,
+        "headers": {
+          "Content-Type": "text/html"
+        },
+        "body": "<html><body>"
+      }
+    },
+    {
+      "description": "A GET request for more detail for item id 00000003",
+      "providerState": "Given there is more detail for item id 00000003",
+      "request": {
+        "method": "get",
+        "path": "/second/00000003",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "Content-Type": "application/json; charset=utf-8"
+        },
+        "body": {
+          "detail": "More detail for id 00000003"
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "pactSpecification": {
+      "version": "2.0.0"
+    }
+  }
+}
