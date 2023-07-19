@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using PlainSequencer.Logging;
 using PlainSequencer.Script;
 using System;
 using System.Collections.Generic;
@@ -126,16 +127,29 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        public static async Task<T> FailableRun<T>(ISequenceItemAction sia, Func<Task<T>> f)
-        { 
+        public static async Task<T> FailableRun<T>(ISequenceLogger logProgress, ISequenceItemAction sia, Func<Task<T>> f)
+        {
+            logProgress.Starting((SequenceItemAbstract)sia);
+            sia.Started = DateTime.Now;
+            var sir = (ISequenceItemResult)sia;
             try { return await f(); } 
             catch (Exception e) 
             { 
-                var sir = (ISequenceItemResult) sia;
                 sir.Exception = e;
-                sir.Fail(e);//.IsFail = true; 
+                sir.Fail(e);
             }
-
+            finally
+            {
+                if (sir.IsFail)
+                {
+                    if (sir.Exception != null)
+                        logProgress.Fail((SequenceItemAbstract)sia, sir.Exception);
+                    else
+                        logProgress.Fail((SequenceItemAbstract)sia, sir.FailMessage);
+                }
+                sia.Finished = DateTime.Now;
+                logProgress.Finished((SequenceItemAbstract)sia);
+            }
             return default(T);
         }
     }

@@ -1,10 +1,12 @@
 ﻿using Microsoft.AspNetCore.WebUtilities;
 using Newtonsoft.Json;
+using PlainSequencer.Autofac;
 using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Scriban;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
+using PlainSequencer.Stuff;
 using Polly;
 using System;
 using System.Collections.Generic;
@@ -21,10 +23,14 @@ namespace PlainSequencer.SequenceItemActions
 {
     public class SequenceItemHttp : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
     {
+        public string WorkingMethod { get; private set; }
         public string WorkingUri { get; private set; }
         public string WorkingBody { get; private set; }
 
-        public SequenceItemHttp(IProgressLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+        [AutofacInjected]
+        public IHttpClientProvider HttpClientProvider { get; set; }
+
+        public SequenceItemHttp(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
             : base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
         public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -34,7 +40,7 @@ namespace PlainSequencer.SequenceItemActions
 
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
-            return await FailableRun<object>(this, async delegate {
+            return await FailableRun<object>(logProgress, this, async delegate {
                 ++this.ActionExecuteCount;
             
                 if (this.sequenceItem.http == null)
@@ -46,28 +52,25 @@ namespace PlainSequencer.SequenceItemActions
 
                 this.WorkingUri = ScribanUtil.ScribanParse(this.sequenceItem.http.url, scribanModel);
 
-                this.logProgress?.Progress(this, $"Processing {this.WorkingUri}...");
+                this.logProgress?.Progress(this, $"Processing {this.WorkingUri}...", SequenceProgressLogLevel.Brief);
+                
+                var client = MakeClientWithHeaders(this.commandLineOptions, this.session.Script, this.sequenceItem);
+                var http_response = await DoHttpActionAsync(client, scribanModel);
+                var statusCodeFail = !http_response.IsSuccessStatusCode;
+                if (statusCodeFail)
+                    Fail($"Http response status code: {http_response.StatusCode}");
 
-                dynamic responseModel = null;
-                using (var client = MakeClientWithHeaders(this.commandLineOptions, this.session.Script, this.sequenceItem))
-                {
-                    var http_response = await DoHttpActionAsync(client, scribanModel);
-                    var statusCodeFail = !http_response.IsSuccessStatusCode;
-                    if (statusCodeFail)
-                        Fail($"Http response status code: {http_response.StatusCode}");
+                var responseContentLength = http_response?.Content?.Headers?.ContentLength ?? 0;
+                var responseContent = responseContentLength > 0
+                    ? (await http_response?.Content?.ReadAsStringAsync())
+                    : string.Empty;
 
-                    var responseContentLength = http_response?.Content?.Headers?.ContentLength ?? 0;
-                    var responseContent = responseContentLength > 0
-                        ? (await http_response?.Content?.ReadAsStringAsync())
-                        : string.Empty;
+                LiteralResponse = responseContent;
 
-                    LiteralResponse = responseContent;
+                this.logProgress?.DataInProgress(this, $" received {responseContentLength} bytes...", SequenceProgressLogLevel.Brief);
+                dynamic responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, responseContent);
 
-                    this.logProgress?.Progress(this, $" received {responseContentLength} bytes...");
-                    responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, responseContent);
-
-                    SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
-                }
+                SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
 
                 ActionResult = responseModel;
                 return ActionResult;
@@ -76,7 +79,8 @@ namespace PlainSequencer.SequenceItemActions
 
         private async Task<HttpResponseMessage> DoHttpActionAsync(HttpClient client, object scribanModel)
         {
-            this.logProgress?.Progress(this, $" using method '{this.sequenceItem.http.method}'...");
+            this.WorkingMethod = this.sequenceItem.http.method;
+            this.logProgress?.DataOutProgress(this, $" using method '{this.sequenceItem.http.method}'...", SequenceProgressLogLevel.Diagnostic);
 
             if (this.sequenceItem.http.query != null)
                 WorkingUri = AppendQuery(this.WorkingUri, scribanModel);
@@ -84,7 +88,7 @@ namespace PlainSequencer.SequenceItemActions
             if (this.sequenceItem.http?.body != null)
             {
                 this.WorkingBody = ScribanUtil.ScribanParse(this.sequenceItem.http.body, scribanModel);
-                this.logProgress?.Progress(this, $" using content body \n'{this.WorkingBody}'\n...");
+                this.logProgress?.DataOutProgress(this, $" using content body \n'{this.WorkingBody}'\n...", SequenceProgressLogLevel.Diagnostic);
 
                 if (this.sequenceItem.http.save.request_content_filename != null)
                 {
@@ -92,7 +96,7 @@ namespace PlainSequencer.SequenceItemActions
                 }
             }
 
-            this.logProgress?.Progress(this, $" using url '{this.WorkingUri}'...");
+            this.logProgress?.DataOutProgress(this, $" using url '{this.WorkingUri}'...", SequenceProgressLogLevel.Diagnostic);
 
             // Process the response content
             var contentType = client.DefaultRequestHeaders.Where(w => w.Key.Equals("accept", StringComparison.OrdinalIgnoreCase )).FirstOrDefault().Value.First().ToString();
@@ -137,7 +141,7 @@ namespace PlainSequencer.SequenceItemActions
             if (contentSaveName.Trim().Length > 0)
             {
                 var contentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(contentSaveName, saveModel));
-                this.logProgress?.Progress(this, $" saving content to '{contentFn }'...");
+                this.logProgress?.Progress(this, $" saving content to '{contentFn }'...", SequenceProgressLogLevel.Diagnostic);
 
                 Directory.CreateDirectory(Path.GetDirectoryName(contentFn));
 
@@ -155,7 +159,7 @@ namespace PlainSequencer.SequenceItemActions
             if (httpResponse != null && responseSaveName.Trim().Length > 0)
             {
                 var nonContentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(responseSaveName, saveModel));
-                this.logProgress?.Progress(this, $" saving response info to '{nonContentFn}'...");
+                this.logProgress?.Progress(this, $" saving response info to '{nonContentFn}'...", SequenceProgressLogLevel.Diagnostic);
 
                 var nonContent = new
                 {
@@ -175,6 +179,8 @@ namespace PlainSequencer.SequenceItemActions
 
         private async Task<HttpResponseMessage> SortOutHttpMethodAndReturnResultAsync(int? instantRetryCount, HttpClient client, string method, string mediaType, string workingBody)
         {
+            // Need to change this to use a HttpRequestMessage instead of relying on the default headers.. :/
+            // and clear the default request headers in the provider
             try
             {
                 HttpResponseMessage methodResult;
@@ -183,9 +189,15 @@ namespace PlainSequencer.SequenceItemActions
                   .Handle<Exception>()
                   .Retry(instantRetryCount ?? 1);
 
+                var retryCount = 0;
                 var ret = policy.Execute<Task<HttpResponseMessage>>(async () => 
                 { 
                     var url = this.WorkingUri;
+                    var attemptDescription = retryCount++ == 0
+                        ? ""
+                        : $" (retry {retryCount})";
+
+                    this.logProgress?.DataOutProgress(this, $"HTTP {method} {this.WorkingUri}{attemptDescription}", SequenceProgressLogLevel.Brief);
                     switch (method.ToUpper())
                     {
                         case "GET":
@@ -223,12 +235,11 @@ namespace PlainSequencer.SequenceItemActions
 
         private HttpClient MakeClientWithHeaders(ICommandLineOptions o, SequenceScript yaml, SequenceItem entry = null)
         {
-            var client = new HttpClient();
+            var client = new HttpClient(); //HttpClientProvider.Client;
 
             const int defaultClientTimeoutSeconds = 90;
             client.Timeout = TimeSpan.FromSeconds(yaml.client_timeout_seconds ?? defaultClientTimeoutSeconds);
 
-            //var scribanModel = new { now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}", yaml.run_id, command_args = o, model = new { }, sequence_item = new { }, unique_no = this.session.UniqueNo};
             var scribanModel = MakeScribanModel();
 
             client.DefaultRequestHeaders.Accept.Clear();
@@ -263,10 +274,10 @@ namespace PlainSequencer.SequenceItemActions
                     }
             }
 
-            var contenType = entry.http.content_type ?? "text/plain";
+            var contentType = entry.http.content_type ?? "text/plain";
 
             if (client.DefaultRequestHeaders.Accept.Count == 0)
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contenType));
+                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
 
             return client;
         }

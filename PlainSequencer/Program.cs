@@ -5,6 +5,7 @@ using PlainSequencer.Options;
 using PlainSequencer.SequenceItemActions;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
+using PlainSequencer.Stuff;
 using System;
 using System.IO;
 
@@ -56,7 +57,7 @@ namespace PlainSequencer
                 builder.RegisterInstance(commandObj).As<ICommandLineOptions>()
                     .SingleInstance();
 
-                builder.RegisterType<ProgressLogger>().As<IProgressLogger>()
+                builder.RegisterType<SequenceLogger>().As<ISequenceLogger>()
                     .SingleInstance();
 
                 builder.RegisterType<Application>()
@@ -74,6 +75,9 @@ namespace PlainSequencer
                     .SingleInstance();
 
                 builder.RegisterType<AutofacSequenceItemActionBuilderFactory>().As<ISequenceItemActionBuilderFactory>()
+                    .SingleInstance();
+
+                builder.RegisterType<HttpClientProvider>().As<IHttpClientProvider>()
                     .SingleInstance();
 
                 RegisterSequenceItemActions(builder);

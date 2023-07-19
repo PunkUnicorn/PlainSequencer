@@ -3,29 +3,36 @@ using PactNet.Mocks.MockHttpService.Models;
 using PactTests;
 using PactTests_Shared;
 using PlainSequencer;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
+using PlainSequencer.SequenceItemActions;
+using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PactTests_ClosedTests
 {
     public class HttpSequencer_TypicalOperation_FansOut
     {
         private readonly PortAllocationFixture mrPorty = new PortAllocationFixture(3000);
+        private readonly ITestOutputHelper mrOutput;
 
         public Func<int> GetAvailablePort => mrPorty.GetAvailablePort;
 
         private ConsumeHttpSequencerPact ConsumeTestYamlPact { get; }
         private int Port { get; }
 
-        public HttpSequencer_TypicalOperation_FansOut()
+        public HttpSequencer_TypicalOperation_FansOut(ITestOutputHelper output)
         {
             Port = GetAvailablePort();
             var consumerName = $"{nameof(HttpSequencer_TypicalOperation_FansOut)}Consumer";
             ConsumeTestYamlPact = new ConsumeHttpSequencerPact(consumerName, Port);
             ConsumeTestYamlPact.MockProviderService.ClearInteractions();
+            mrOutput = output;
         }
 
         private SequenceScript MakeYamlSequence(int port, string commandPostfix)
@@ -109,11 +116,13 @@ namespace PactTests_ClosedTests
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }            
         }
 
         [Fact]
-        public void FansOutThree_ExpectedFailOnOne()
+        public void FansOutThree_ExpectedFailForOne()
         {
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
@@ -160,11 +169,13 @@ namespace PactTests_ClosedTests
                 Assert.False(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name, SequenceProgressLogLevel.Brief);
+                mrOutput.WriteLine(sequenceNotation);
             }            
         }
 
         [Fact]
-        public void FansOutThree_ExpectedFailOnTwo()
+        public void FansOutThree_ExpectedFailForTwo()
         {
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
@@ -211,6 +222,8 @@ namespace PactTests_ClosedTests
                 Assert.False(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }            
         }
     }

@@ -18,7 +18,7 @@ namespace PlainSequencer.SequenceItemActions
 {
     public class SequenceItemLoad : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
     {
-		public SequenceItemLoad(IProgressLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+		public SequenceItemLoad(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
             : base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
         public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -30,21 +30,19 @@ namespace PlainSequencer.SequenceItemActions
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-			return await FailableRun<object>(this, async delegate {
+			return await FailableRun<object>(logProgress, this, async delegate {
 				++this.ActionExecuteCount;
 
 				if (this.sequenceItem.load == null)
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.load)} missing");
 
+				this.logProgress?.Progress(this, $"Loading {this.sequenceItem.load.csv}...", SequenceProgressLogLevel.Brief);
 
-				this.logProgress?.Progress(this, $"Loading {this.sequenceItem.load.csv}...");
-
-				//var scribanModel = new { now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}", run_id = this.session.RunId, command_args = this.commandLineOptions, this.model, sequence_item = this.sequenceItem, unique_no = this.session.UniqueNo};
                 var scribanModel = MakeScribanModel();
 
                 var loadfile = ScribanUtil.ScribanParse(this.sequenceItem?.load?.csv ?? "", scribanModel);
 
-				var csvRows = LoadFile(this.sequenceItem.load, loadfile);
+				var csvRows = LoadCsvFile(this.sequenceItem.load, loadfile);
 
 				var noOfRows = csvRows?.Count() ?? 0;
 
@@ -57,9 +55,10 @@ namespace PlainSequencer.SequenceItemActions
 			});
 		}
 
-		private List<IDictionary<string, object>> LoadFile(Load load, string filename)
+		private List<IDictionary<string, object>> LoadCsvFile(Load load, string filename)
 		{
             var readData = File.ReadAllText(filename);
+            this.logProgress?.DataInProgress(this, $"Loaded {readData.Length} bytes from {filename}...", SequenceProgressLogLevel.Brief);
 
             List<IDictionary<string, object>> csvRows = null;
 

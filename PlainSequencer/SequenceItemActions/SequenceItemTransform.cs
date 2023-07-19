@@ -14,7 +14,7 @@ namespace PlainSequencer.SequenceItemActions
 
     public class SequenceItemTransform : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
 	{
-		public SequenceItemTransform(IProgressLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+		public SequenceItemTransform(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
 			: base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
 		public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -24,19 +24,22 @@ namespace PlainSequencer.SequenceItemActions
 
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken) 
 		{
-			return await FailableRun<object>(this, async delegate {
+			return await FailableRun<object>(logProgress, this, async delegate {
 				++this.ActionExecuteCount;
+
+				this.logProgress?.Progress(this, $"Transforming model ...", SequenceProgressLogLevel.Brief);
 
 				if (this.sequenceItem.transform == null)
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.transform)} missing");
 
-				this.logProgress?.Progress(this, $"Transforming model {this.sequenceItem.transform.new_model_template}...");
+				this.logProgress?.Progress(this, $"Transforming model {this.sequenceItem.transform.new_model_template}...", SequenceProgressLogLevel.Diagnostic);
 
 				var scribanModel = MakeScribanModel(); 
 
                 var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
 
 				LiteralResponse = scribanProcessedTemplate;
+				this.logProgress?.Progress(this, $"Transformed to:\n {scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
 
 				var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, scribanProcessedTemplate);
 

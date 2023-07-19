@@ -14,6 +14,8 @@ namespace PlainSequencer.SequenceItemSupport
         private SequenceItem[] nextItems;
         private readonly ISequenceItemActionBuilderFactory sequenceItemActionBuilderFactory;
         private readonly ISequenceItemActionFactory sequenceItemActionFactory;
+        private int peerIndex;
+
         public SequenceItemActionBuilder(ISequenceItemActionFactory sequenceItemActionFactory, ISequenceItemActionBuilderFactory sequenceItemActionBuilderFactory)
         {
             this.sequenceItemActionFactory = sequenceItemActionFactory;
@@ -28,6 +30,7 @@ namespace PlainSequencer.SequenceItemSupport
                 Parent = parent,
                 NextSequenceItems = nextItems,
                 SequenceItem = sequenceItem,
+                PeerIndex = peerIndex
             };
 
 
@@ -42,7 +45,8 @@ namespace PlainSequencer.SequenceItemSupport
                 .WithAncestory(parent)
                 .WithNextSequenceItemsAs(nextItems)
                 .WithThisSequenceItem(sequenceItem)
-                .WithThisResponseModel(model);
+                .WithThisResponseModel(model)
+                .WithThisPeerIndex(peerIndex);
         }
 
         public ISequenceItemActionBuilder WithThisSequenceItem(SequenceItem sequenceItem)
@@ -60,6 +64,7 @@ namespace PlainSequencer.SequenceItemSupport
 
             return this;
         }
+
         public ISequenceItemActionBuilder WithAncestory(ISequenceItemAction parent)
         {
             this.parent = parent as ISequenceItemActionHierarchy;
@@ -80,9 +85,15 @@ namespace PlainSequencer.SequenceItemSupport
 
         public ISequenceItemActionBuilder WithThisResponseModel(object model)
         {
-            var look2 = JsonConvert.SerializeObject(model, Formatting.Indented);
+            //var look2 = JsonConvert.SerializeObject(model, Formatting.Indented);
             this.model = model;
-            var look1 = JsonConvert.SerializeObject(model, Formatting.Indented);
+            //var look1 = JsonConvert.SerializeObject(model, Formatting.Indented);
+            return this;
+        }
+
+        public ISequenceItemActionBuilder WithThisPeerIndex(int index)
+        {
+            this.peerIndex = index;
             return this;
         }
     }

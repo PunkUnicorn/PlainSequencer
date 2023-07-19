@@ -14,9 +14,15 @@ using static PlainSequencer.SequenceItemActions.SequenceItemStatic;
 
 namespace PlainSequencer.SequenceItemActions
 {
-    public class SequenceItemRun : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
+	public class SequenceItemRunException : Exception
 	{
-		public SequenceItemRun(IProgressLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+		public SequenceItemRunException(string message) : base(message) { }
+		public SequenceItemRunException(string message, Exception innerException) : base(message, innerException) { }
+	}
+
+	public class SequenceItemRun : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
+	{
+		public SequenceItemRun(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
 			: base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
 		public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -27,7 +33,7 @@ namespace PlainSequencer.SequenceItemActions
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
-			return await FailableRun<object>(this, async delegate {
+			return await FailableRun<object>(logProgress, this, async delegate {
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
 				++this.ActionExecuteCount;
 
@@ -35,16 +41,15 @@ namespace PlainSequencer.SequenceItemActions
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.run)} missing");
 
 
-				this.logProgress?.Progress(this, $"Running {this.sequenceItem.run.exec}...");
+				this.logProgress?.Progress(this, $"Running {this.sequenceItem.run.exec}...", SequenceProgressLogLevel.Brief);
 
-				//var scribanModel = new { now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}", run_id = this.session.RunId, command_args = this.commandLineOptions, this.model, sequence_item = this.sequenceItem, unique_no = this.session.UniqueNo };
 				var scribanModel = MakeScribanModel();
 
 				// Exec run external program
 				var workingExec = ScribanUtil.ScribanParse(this.sequenceItem?.run?.exec ?? "", scribanModel);
 				var workingArgs = ScribanUtil.ScribanParse(this.sequenceItem?.run?.args ?? "", scribanModel);
 
-				this.logProgress?.Progress(this, $" running exec '{workingExec}', with args '{workingArgs}'...");
+				this.logProgress?.Progress(this, $" running exec '{workingExec}', with args '{workingArgs}'...", SequenceProgressLogLevel.Diagnostic);
 
 				var itsStandardInput = (model != null)
 					? JsonConvert.SerializeObject(model)
@@ -54,8 +59,8 @@ namespace PlainSequencer.SequenceItemActions
 				var responseContentLength = execReturn?.Length ?? 0;
 				var responseContent = execReturn;
 				LiteralResponse = execReturn;
-				var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, execReturn);
 
+				var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, execReturn);
 				ActionResult = responseModel;
 
 				return ActionResult;
@@ -121,15 +126,13 @@ namespace PlainSequencer.SequenceItemActions
 			if (errorOutputBuilder.Length > 0)
 			{
 				var errorDetail = errorOutputBuilder.ToString();
-				this.logProgress?.Error(errorDetail);
-				throw new Exception(errorDetail);
+				throw new SequenceItemRunException(errorDetail);
 			}
 
 			if (!sequenceItem.run.is_ignore_exitcode && exitCode != 0)
 			{
 				var errorMsg = $"Failed due to '{workingExec}' returning non-zero exitcode: {exitCode}";
-				this.logProgress?.Error(errorMsg);
-				throw new Exception(errorMsg);
+				throw new SequenceItemRunException(errorMsg);
 			}
 			return output;
 		}

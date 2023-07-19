@@ -17,7 +17,9 @@ namespace PlainSequencer.SequenceItemSupport
         ISequenceItemActionBuilder WithNextSequenceItemsAs(SequenceItem[] nextItems);
 
         ISequenceItemActionBuilder WithThisResponseModel(object model);
-       
+
+        ISequenceItemActionBuilder WithThisPeerIndex(int index);
+
         ISequenceItemActionBuilder Clone();
 
         ISequenceItemAction Build();

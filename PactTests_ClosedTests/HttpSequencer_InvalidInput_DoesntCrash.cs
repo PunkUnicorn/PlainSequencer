@@ -6,6 +6,7 @@ using PlainSequencer;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceScriptLoader;
+using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -35,7 +36,7 @@ namespace PactTests_ClosedTests
             var testOptions = new CommandLineOptions();
 
             /* Act */
-            var provider = new Application(testOptions, null, null);
+            var provider = new Application(testOptions, null, null, null);
             var result = provider.RunAsync(null).Result;
 
             /* Assert */
@@ -172,7 +173,7 @@ sequence_items:
                 var testOptions = new CommandLineOptions { YamlFile = t.Filename };
 
                 /* 𝓐𝓬𝓽 */
-                var provider = new Application(testOptions, new LoadScript(), null);
+                var provider = new Application(testOptions, new LoadScript(), null, null);
                 var result = provider.RunAsync(null).Result;
 
                 /* 𝓐𝓼𝓼𝓮𝓻𝓽 */

@@ -3,12 +3,16 @@ using PactNet.Mocks.MockHttpService.Models;
 using PactTests;
 using PactTests_Shared;
 using PlainSequencer;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
+using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace PactTests_ClosedTests
 {
@@ -25,18 +29,20 @@ namespace PactTests_ClosedTests
     public class HttpSequencer_TypicalOperation_DoesntCrash
     {
         private readonly PortAllocationFixture mrPorty = new PortAllocationFixture(1000);
+        private readonly ITestOutputHelper mrOutput;
 
         public Func<int> GetAvailablePort => mrPorty.GetAvailablePort;
 
         public ConsumeHttpSequencerPact ConsumeTestYamlPact { get; }
         public int Port { get; }
 
-        public HttpSequencer_TypicalOperation_DoesntCrash()
+        public HttpSequencer_TypicalOperation_DoesntCrash(ITestOutputHelper output)
         {
             Port = GetAvailablePort();
             var consumerName = $"{nameof(HttpSequencer_TypicalOperation_DoesntCrash)}Consumer";
             ConsumeTestYamlPact = new ConsumeHttpSequencerPact(consumerName, Port);
             ConsumeTestYamlPact.MockProviderService.ClearInteractions();
+            mrOutput = output;
         }
 
         [Fact]
@@ -90,6 +96,9 @@ sequence_items:
                     /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
                     Assert.True(result);
                     consumeTestYamlPact.MockProviderService.VerifyInteractions();
+
+                    var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                    mrOutput.WriteLine(sequenceNotation);
                 }
             }
         }
@@ -167,6 +176,8 @@ sequence_items:
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }
         }
 
@@ -259,12 +270,34 @@ sequence_items:
 
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }            
         }
 
         [Fact]
         public void ThreeSequences_ModelTransform()
         {
+
+            /* prototype sequence diagram notation for test
+             title This is a title
+
+Different header box styles for each action type?
+
+
+note over one of three get complex object:HTTP Action:\nGET json complex object\nhttps://localhost
+one of three get complex object->two-of-three-transform-model:Complex object:\nId = "00000001",\nNestedArray = new [] { "Item1", "Item2", "Item3" } 
+note over two-of-three-transform-model: Transform Action:\nExtract 'NestedArray'\nfrom complex object
+two-of-three-transform-model->three-of-three-get-detail:Item1
+note over three-of-three-get-detail:HTTP\nGet additional data for Item1
+two-of-three-transform-model->three-of-three-get-detail:Item2
+note over three-of-three-get-detail:HTTP\nGet additional data for Item2
+two-of-three-transform-model->three-of-three-get-detail:Item3
+note over three-of-three-get-detail:HTTP\nGet additional data for Item3
+
+             
+             */
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
             const string expectedMoreDetailForItem1 = nameof(expectedMoreDetailForItem1);
@@ -333,7 +366,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "two-of-three-transform-model",
-                        //breadcrumb = "transform - {{model.Id}}\n{{model}}",
                         transform = new Transform
                         {
                             new_model_template = "[ {{- for item in model.NestedArray -}} \"{{item}}\" {{- if !for.last -}} , {{- end}}{{end -}} ]"
@@ -343,7 +375,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "three-of-three-get-detail",
-                        //breadcrumb =  "{{sequence_item.send.url}} - {{model}}",
                         is_model_array = true,
                         http = new Http
                         {
@@ -372,6 +403,8 @@ sequence_items:
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }            
         }
 
@@ -422,7 +455,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "one-of-three-check-passes",
-                        //breadcrumb =  "{{sequence_item.send.url}}",
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -434,7 +466,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "two-of-three-check-passes",
-                        //breadcrumb =  "{{sequence_item.send.url}} - {{model.Id}}",
                         is_model_array = true,
                         http = new Http
                         {
@@ -447,11 +478,10 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "three-of-three-check-passes",
-                        //breadcrumb =  "check:\n{{sequence_item.check.pass_template}}\nwith:\n{{model.detail}}",
                         check = new Check
                         {
                             pass_template = "{{if model.detail=='expectedMoreDetailString'}}true{{else}}false{{end}}",
-                            fail_info_template = "Model detail failed with value: {{model.detail}}"
+                            fail_info_template = "Failed with value: '{{model.detail}}'"
                         }
                     }
                 }
@@ -472,6 +502,9 @@ sequence_items:
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
                 Assert.True(result);
+
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }
         }
 
@@ -522,7 +555,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "one-of-three-check-at-end-fails",
-                        //breadcrumb =  "{{sequence_item.send.url}}",
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -534,7 +566,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "two-of-three-check-at-end-fails",
-                        //breadcrumb =  "{{sequence_item.send.url}}",
                         is_model_array = true,
                         http = new Http
                         {
@@ -547,11 +578,10 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "three-of-three-check-at-end-fails",
-                        //breadcrumb =  "check:\n{{sequence_item.check.pass_template}}\nwith:\n{{model.detail}}",
                         check = new Check
                         {
                             pass_template = "{{if model.detail=='it will never be this'}}true{{else}}false{{end}}",
-                            fail_info_template = "Model detail failed with value: {{model.detail}}"
+                            fail_info_template = "Expected fail, with value: '{{model.detail}}'"
                         }
                     }
                 }
@@ -574,8 +604,10 @@ sequence_items:
 
                 Assert.False(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
-            
-            }           
+
+                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
+            }
         }
     }
 }

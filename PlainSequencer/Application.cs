@@ -4,6 +4,7 @@ using PlainSequencer.Script;
 using PlainSequencer.SequenceItemActions;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
+using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,13 +19,15 @@ namespace PlainSequencer
         private readonly ICommandLineOptions commandLineOptions;
         private readonly ILoadScript scriptLoader;
         private readonly ISequenceItemActionBuilderFactory itemActionBuilderFactory;
+        private readonly IHttpClientProvider httpClientProvider;
         private SequenceScript script;
 
-        public Application(ICommandLineOptions commandLineOptions, ILoadScript scriptLoader, ISequenceItemActionBuilderFactory itemActionBuilderFactory)
+        public Application(ICommandLineOptions commandLineOptions, ILoadScript scriptLoader, ISequenceItemActionBuilderFactory itemActionBuilderFactory, IHttpClientProvider httpClientProvider)
         {
             this.commandLineOptions = commandLineOptions;
             this.scriptLoader = scriptLoader;
             this.itemActionBuilderFactory = itemActionBuilderFactory;
+            this.httpClientProvider = httpClientProvider;
         }
 
         private int uniqueNo = 0;
@@ -35,6 +38,8 @@ namespace PlainSequencer
         public int UniqueNo => ++uniqueNo;
 
         public SequenceScript Script { get; set; }
+
+        public IHttpClientProvider HttpClientProvider => httpClientProvider;
 
         public async Task<bool> RunAsync(object startModel)
         {

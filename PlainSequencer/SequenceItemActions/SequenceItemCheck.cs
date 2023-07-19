@@ -13,22 +13,22 @@ namespace PlainSequencer.SequenceItemActions
 {
     public class SequenceItemCheckException : Exception
     {
-        public SequenceItemCheckException(SequenceItem check, SequenceItemCheck checker, object model)
-            : base($"{check.name} - Failed check '{check.check.pass_template}'\n{check.check.FailMessage(model)}\n...with model:\n{JsonConvert.SerializeObject(model ?? "null", Formatting.Indented)}")
+        public SequenceItemCheckException(SequenceItem check, SequenceItemCheck checker, object scribanModel)
+            : base($"Failed check: '{check.name}'\nWith pass template: '{check.check.pass_template}'\nFail message: {check.check.FailMessage(scribanModel)}")
         {
             SequenceItem = check;
             Checker = checker;
-            Model = model;
+            //Model = scribanModel;
         }
 
         public SequenceItem SequenceItem { get; }
         public SequenceItemCheck Checker { get; }
-        public object Model { get; }
+        //public object Model { get; }
     }
 
     public class SequenceItemCheck : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
     {
-        public SequenceItemCheck(IProgressLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+        public SequenceItemCheck(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
             : base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
         public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -39,7 +39,7 @@ namespace PlainSequencer.SequenceItemActions
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
-            return await FailableRun<object>(this, async delegate
+            return await FailableRun<object>(logProgress, this, async delegate
             {
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 ++this.ActionExecuteCount;
@@ -47,23 +47,15 @@ namespace PlainSequencer.SequenceItemActions
                 if (this.sequenceItem.check == null)
                     throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.check)} missing");
 
-                //var scribanModel = new
-                //{
-                //    run_id = this.session.RunId,
-                //    command_args = this.commandLineOptions,
-                //    this.model,
-                //    sequence_item = this.sequenceItem,
-                //    unique_no = session.UniqueNo
-                //};
                 var scribanModel = MakeScribanModel();
 
                 var result = this.sequenceItem.check.IsPass(scribanModel);
                 LiteralResponse = result.ToString();
-                var resultString = result ? "Success" : "Fail";
-                this.logProgress?.Progress(this, $":{resultString}:{sequenceItem.name}");
                 ActionResult = this.model;
 
-                if (!result)
+                if (result)
+                    this.logProgress?.Progress(this, $"Check OK: '{sequenceItem.name}'", SequenceProgressLogLevel.Brief);
+                else
                     Fail( new SequenceItemCheckException(this.sequenceItem, this, scribanModel));
 
                 return ActionResult;

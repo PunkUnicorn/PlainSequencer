@@ -5,6 +5,7 @@ using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
+using PlainSequencer.Stuff;
 using static PlainSequencer.Program;
 
 namespace PactTests_Shared
@@ -19,7 +20,7 @@ namespace PactTests_Shared
                 builder.RegisterInstance(testOptions).As<ICommandLineOptions>()
                     .SingleInstance();
 
-            builder.RegisterType<ProgressLogger>().As<IProgressLogger>()
+            builder.RegisterType<SequenceLogger>().As<ISequenceLogger>()
                 .SingleInstance();
 
             builder.RegisterType<Application>()
@@ -37,6 +38,9 @@ namespace PactTests_Shared
                 .SingleInstance();
 
             builder.RegisterType<AutofacSequenceItemActionBuilderFactory>().As<ISequenceItemActionBuilderFactory>()
+                .SingleInstance();
+
+            builder.RegisterType<HttpClientProvider>().As<IHttpClientProvider>()
                 .SingleInstance();
 
             ContainerConfig.RegisterSequenceItemActions(builder);

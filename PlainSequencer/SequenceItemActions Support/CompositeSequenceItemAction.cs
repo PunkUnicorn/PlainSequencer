@@ -19,6 +19,34 @@ namespace PlainSequencer.SequenceItemSupport
 
         public SequenceItem SequenceItem { get; set; }
 
+        public DateTime Started
+        {
+            get => Children
+                ?.Where(child => child != null)
+                ?.Cast<ISequenceItemActionHierarchy>()
+                ?.Min(child => child.Started) ?? DateTime.MinValue;
+            set => throw new NotImplementedException();
+        }
+
+        public DateTime Finished
+        {
+            get => Children
+                ?.Where(child => child != null)
+                ?.Cast<ISequenceItemActionHierarchy>()
+                ?.Max(child => child.Finished) ?? DateTime.MinValue;
+            set => throw new NotImplementedException();
+        }
+        public string Name => SequenceItem.name; //string.Join(",", Children
+                                                 //?.Where(child => child != null)
+                                                 //?.Cast<ISequenceItemActionHierarchy>()
+                                                 //?.Select(child => child.Name));
+
+        string ISequenceItemActionHierarchy.FullAncestryName => throw new NotImplementedException();
+
+        public string PeerUniqueFullName => throw new NotImplementedException();
+
+        public string PeerUniqueWithRetryIndexName => throw new NotImplementedException();
+
         public int ActionExecuteCount { get; set; }
 
         public object Model { get; set; }
@@ -83,8 +111,10 @@ namespace PlainSequencer.SequenceItemSupport
             var first = SequenceItemStatic.Clone(models.FirstOrDefault());
             if (first == null) return null;
 
+            var peerIndex = 0;
             var firstNode = sequenceItemActionBuilder
                 .WithThisResponseModel(first)
+                .WithThisPeerIndex(++peerIndex)
                 .Build();
 
             retval.Add(firstNode as ISequenceItemActionHierarchy);
@@ -94,6 +124,7 @@ namespace PlainSequencer.SequenceItemSupport
                 var itemAction = sequenceItemActionBuilder
                     .Clone()
                     .WithThisResponseModel(others)
+                    .WithThisPeerIndex(++peerIndex)
                     .Build();
 
                 retval.Add(itemAction as ISequenceItemActionHierarchy);
@@ -110,7 +141,7 @@ namespace PlainSequencer.SequenceItemSupport
         }
 
         public async Task<object> ActionAsync(CancellationToken cancelToken)
-        {           
+        {
             foreach (var run in Children.Cast<ISequenceItemActionRun>())
                 await run.ActionAsync(cancelToken);
 
@@ -143,6 +174,10 @@ namespace PlainSequencer.SequenceItemSupport
             isFail = true;
             return this;
         }
+
+        public string[] GetParents() => Children.FirstOrDefault()?.GetParents();
+
+        public string FullAncestryName() => Children.FirstOrDefault()?.FullAncestryName;
 
         public string FailMessage
         {

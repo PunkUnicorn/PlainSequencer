@@ -1,4 +1,5 @@
 ﻿using PlainSequencer.Script;
+using System;
 using System.Collections.Generic;
 
 namespace PlainSequencer.SequenceItemActions
@@ -8,5 +9,9 @@ namespace PlainSequencer.SequenceItemActions
         SequenceItem SequenceItem { get; }
 
         IEnumerable<string> Compile(SequenceItem sequenceItem);
+
+        DateTime Started { get; set; }
+
+        DateTime Finished { get; set;  }
     }
 }

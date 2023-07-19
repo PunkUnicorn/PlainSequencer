@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace PlainSequencer
+namespace PlainSequencer.Stuff
 {
 	/// <summary>
 	/// public class NamedStringList : List<KeyValuePair<string /*name*/, string /*value*/>> ...
