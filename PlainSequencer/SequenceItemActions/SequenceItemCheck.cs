@@ -28,7 +28,7 @@ namespace PlainSequencer.SequenceItemActions
 
     public class SequenceItemCheck : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
     {
-        public SequenceItemCheck(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+        public SequenceItemCheck(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
             : base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
         public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -41,6 +41,8 @@ namespace PlainSequencer.SequenceItemActions
         {
             return await FailableRun<object>(logProgress, this, async delegate
             {
+                // Do retries within a failable run so only the final fail is registered, but increment ActionExecuteCount with each retry
+
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 ++this.ActionExecuteCount;
 

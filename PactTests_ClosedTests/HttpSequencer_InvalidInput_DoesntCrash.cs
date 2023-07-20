@@ -3,6 +3,7 @@ using PactNet.Mocks.MockHttpService.Models;
 using PactTests;
 using PactTests_Shared;
 using PlainSequencer;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceScriptLoader;
@@ -36,11 +37,10 @@ namespace PactTests_ClosedTests
             var testOptions = new CommandLineOptions();
 
             /* Act */
-            var provider = new Application(testOptions, null, null, null);
+            var provider = new Application(testOptions, null, null, null, new ConsoleOutputter(), new LogSequence());
             var result = provider.RunAsync(null).Result;
 
             /* Assert */
-            //Assert.Equal(3, result);
             Assert.False(result);
         }
 
@@ -54,7 +54,6 @@ namespace PactTests_ClosedTests
                     new SequenceItem
                     {
                         name = "invalid_url",
-                        //breadcrumb = "{{sequence_item.send.url}}",
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -116,7 +115,6 @@ namespace PactTests_ClosedTests
                         new SequenceItem
                         {
                             name = "one-of-two-url-ok",
-                            //breadcrumb = "{{sequence_item.send.url}}",
                             http = new Http
                             {
                                 header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -128,7 +126,6 @@ namespace PactTests_ClosedTests
                         new SequenceItem
                         {
                             name = "two-of-two-url-doesnt-exist",
-                            //breadcrumb = "{{sequence_item.send.url}}",
                             http = new Http
                             {
                                 header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -173,11 +170,10 @@ sequence_items:
                 var testOptions = new CommandLineOptions { YamlFile = t.Filename };
 
                 /* 𝓐𝓬𝓽 */
-                var provider = new Application(testOptions, new LoadScript(), null, null);
+                var provider = new Application(testOptions, new LoadScript(), null, null, new ConsoleOutputter(), new LogSequence());
                 var result = provider.RunAsync(null).Result;
 
                 /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
-                //Assert.Equal(2, result);
                 Assert.False(result);
             }
         }

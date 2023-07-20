@@ -1,4 +1,6 @@
 ﻿using Autofac;
+using FluentAssertions;
+using Newtonsoft.Json;
 using PactNet.Mocks.MockHttpService.Models;
 using PactTests;
 using PactTests_Shared;
@@ -97,7 +99,7 @@ sequence_items:
                     Assert.True(result);
                     consumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                    var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                    var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                     mrOutput.WriteLine(sequenceNotation);
                 }
             }
@@ -176,7 +178,7 @@ sequence_items:
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
             }
         }
@@ -271,7 +273,7 @@ sequence_items:
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
             }            
         }
@@ -403,7 +405,7 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                 Assert.True(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
             }            
         }
@@ -503,13 +505,15 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
 
                 Assert.True(result);
 
-                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
             }
         }
 
-        [Fact]
-        public void ThreeSequences_CheckFails()
+        [Theory]
+        [InlineData(false, "")]
+        [InlineData(true, "[{\"detail\":\"expectedMoreDetailString\"}]")]
+        public void ThreeSequences_CheckFails(bool outputDespiteErrors, string expectedOutput)
         {
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
@@ -550,6 +554,7 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
 
             var testYamlSequence = new SequenceScript
             {
+                output_after_failure = outputDespiteErrors,
                 sequence_items = new List<SequenceItem> {
                     /* First */
                     new SequenceItem
@@ -605,8 +610,28 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                 Assert.False(result);
                 ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                var sequenceNotation = container.Resolve<ISequenceLogger>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                var output = container.Resolve<ConsoleOutputterTest>();
+                var actual = output.Output.Length == 0
+                    ? output.Output
+                    : JsonConvert.SerializeObject(JsonConvert.DeserializeObject(output.Output), Formatting.None);
+
+                actual.Should().Be(expectedOutput);
+
+
+                /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
+
+                var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
                 mrOutput.WriteLine(sequenceNotation);
+
+                sequenceNotation.Should().Contain($"title {title}");
+                sequenceNotation.Should().Contain("two of three check at end fails-xthree of three check at end fails:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}");
+
+                var expectedLastResultLine = "three of three check at end fails-xResult:[\\n  {\\n    \"detail\": \"expectedMoreDetailString\"\\n  }\\n]";
+                if (outputDespiteErrors)
+                    sequenceNotation.Should().Contain(expectedLastResultLine);
+                else
+                    sequenceNotation.Should().NotContain(expectedLastResultLine);
             }
         }
     }

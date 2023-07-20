@@ -20,7 +20,7 @@ namespace PlainSequencer.SequenceItemActions
         protected readonly object model;
         protected readonly ICommandLineOptions commandLineOptions;
         protected readonly IEnumerable<SequenceItem> nextSequenceItems;
-        protected readonly ISequenceLogger logProgress;
+        protected readonly ILogSequence logProgress;
         protected readonly ISequenceSession session;
         protected readonly SequenceItem sequenceItem;
         protected readonly int peerIndex;
@@ -29,7 +29,11 @@ namespace PlainSequencer.SequenceItemActions
 
         public object ActionResult { get; protected set; }
 
-        public SequenceItemAbstract(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+        public void NullResult() => ActionResult = null;
+
+        public void BlankResult() => ActionResult = string.Empty;
+
+        public SequenceItemAbstract(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
         {
             this.logProgress = logProgress;
             this.session = session;
@@ -138,7 +142,11 @@ namespace PlainSequencer.SequenceItemActions
         public async Task<object> ActionAsync(CancellationToken cancelToken)
         {
             var nextModel = await ActionAsyncInternal(cancelToken);
-            return await CascadeNextActionAsync(cancelToken, nextModel);
+            
+            if (!IsFail || (IsFail && sequenceItem.is_continue_on_failure))
+                return await CascadeNextActionAsync(cancelToken, nextModel);
+
+            return nextModel;// null;
         }
 
         protected async Task<object> CascadeNextActionAsync(CancellationToken cancelToken, object nextModel)

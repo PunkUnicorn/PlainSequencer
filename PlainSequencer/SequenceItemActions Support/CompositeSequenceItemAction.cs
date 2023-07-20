@@ -103,6 +103,8 @@ namespace PlainSequencer.SequenceItemSupport
             }
         }
 
+        public void NullResult() => throw new NotImplementedException();
+        public void BlankResult() => throw new NotImplementedException();
 
         public static CompositeSequenceItemAction FanOutBuildFrom(ISequenceItemActionBuilder sequenceItemActionBuilder, IEnumerable<object> models)
         {

@@ -22,7 +22,7 @@ namespace PlainSequencer.SequenceItemActions
 
 	public class SequenceItemRun : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
 	{
-		public SequenceItemRun(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+		public SequenceItemRun(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
 			: base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
 		public IEnumerable<string> Compile(SequenceItem sequenceItem)

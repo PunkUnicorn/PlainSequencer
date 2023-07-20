@@ -7,6 +7,7 @@ using PlainSequencer.Scriban;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.Stuff;
+using PlainSequencer.Stuff.Interfaces;
 using Polly;
 using System;
 using System.Collections.Generic;
@@ -30,7 +31,7 @@ namespace PlainSequencer.SequenceItemActions
         [AutofacInjected]
         public IHttpClientProvider HttpClientProvider { get; set; }
 
-        public SequenceItemHttp(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+        public SequenceItemHttp(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
             : base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
         public IEnumerable<string> Compile(SequenceItem sequenceItem)
@@ -54,8 +55,8 @@ namespace PlainSequencer.SequenceItemActions
 
                 this.logProgress?.Progress(this, $"Processing {this.WorkingUri}...", SequenceProgressLogLevel.Brief);
                 
-                var client = MakeClientWithHeaders(this.commandLineOptions, this.session.Script, this.sequenceItem);
-                var http_response = await DoHttpActionAsync(client, scribanModel);
+                var request = MakeRequestWithHeaders(this.commandLineOptions, this.session.Script, this.sequenceItem);
+                var http_response = await DoHttpActionAsync(request, scribanModel);
                 var statusCodeFail = !http_response.IsSuccessStatusCode;
                 if (statusCodeFail)
                     Fail($"Http response status code: {http_response.StatusCode}");
@@ -77,7 +78,7 @@ namespace PlainSequencer.SequenceItemActions
             });
         }
 
-        private async Task<HttpResponseMessage> DoHttpActionAsync(HttpClient client, object scribanModel)
+        private async Task<HttpResponseMessage> DoHttpActionAsync(HttpRequestMessage request, object scribanModel)
         {
             this.WorkingMethod = this.sequenceItem.http.method;
             this.logProgress?.DataOutProgress(this, $" using method '{this.sequenceItem.http.method}'...", SequenceProgressLogLevel.Diagnostic);
@@ -99,8 +100,8 @@ namespace PlainSequencer.SequenceItemActions
             this.logProgress?.DataOutProgress(this, $" using url '{this.WorkingUri}'...", SequenceProgressLogLevel.Diagnostic);
 
             // Process the response content
-            var contentType = client.DefaultRequestHeaders.Where(w => w.Key.Equals("accept", StringComparison.OrdinalIgnoreCase )).FirstOrDefault().Value.First().ToString();
-            return await SortOutHttpMethodAndReturnResultAsync(this.sequenceItem.max_retries, client, this.sequenceItem.http.method, contentType, WorkingBody);
+            var contentType = request.Headers.Where(w => w.Key.Equals("accept", StringComparison.OrdinalIgnoreCase )).FirstOrDefault().Value.First().ToString();
+            return await SortOutHttpMethodAndReturnResultAsync(this.sequenceItem.max_retries, request, this.WorkingMethod, contentType, WorkingBody);
         }
 
         private string AppendQuery(string workingUri, object scribanModel)
@@ -177,51 +178,56 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        private async Task<HttpResponseMessage> SortOutHttpMethodAndReturnResultAsync(int? instantRetryCount, HttpClient client, string method, string mediaType, string workingBody)
+        private async Task<HttpResponseMessage> SortOutHttpMethodAndReturnResultAsync(int? instantRetryCount, HttpRequestMessage request, string method, string mediaType, string workingBody)
         {
             // Need to change this to use a HttpRequestMessage instead of relying on the default headers.. :/
             // and clear the default request headers in the provider
             try
             {
-                HttpResponseMessage methodResult;
-
+                // Do the retry elsewhere
                 var policy = Policy
                   .Handle<Exception>()
                   .Retry(instantRetryCount ?? 1);
 
                 var retryCount = 0;
                 var ret = policy.Execute<Task<HttpResponseMessage>>(async () => 
-                { 
-                    var url = this.WorkingUri;
+                {
+                    request.Method = new HttpMethod(method);
+                    request.RequestUri = new Uri(this.WorkingUri);
+
+                    if (request.Method != new HttpMethod("get"))
+                        request.Content = new StringContent(workingBody, Encoding.UTF8, mediaType);
+
                     var attemptDescription = retryCount++ == 0
                         ? ""
                         : $" (retry {retryCount})";
 
                     this.logProgress?.DataOutProgress(this, $"HTTP {method} {this.WorkingUri}{attemptDescription}", SequenceProgressLogLevel.Brief);
-                    switch (method.ToUpper())
-                    {
-                        case "GET":
-                            methodResult = await client.GetAsync(url);
-                            break;
+                    var methodResult = await HttpClientProvider.Client.SendAsync(request);
+                    //switch (method.ToUpper())
+                    //{
+                    //    case "GET":
+                    //        methodResult = await client.GetAsync(url);
+                    //        break;
 
-                        case "PUT":
-                            /*UNTESTED*/
-                            methodResult = await client.PutAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                            break;
+                    //    case "PUT":
+                    //        /*UNTESTED*/
+                    //        methodResult = await client.PutAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
+                    //        break;
 
-                        case "POST":
-                            /*UNTESTED*/
-                            methodResult = await client.PostAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                            break;
+                    //    case "POST":
+                    //        /*UNTESTED*/
+                    //        methodResult = await client.PostAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
+                    //        break;
 
-                        case "PATCH":
-                            /*UNTESTED*/
-                            methodResult = await client.PatchAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                            break;
+                    //    case "PATCH":
+                    //        /*UNTESTED*/
+                    //        methodResult = await client.PatchAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
+                    //        break;
 
-                        default:
-                            throw new InvalidOperationException($"Unknown {nameof(method)}: '{method}'");
-                    }
+                    //    default:
+                    //        throw new InvalidOperationException($"Unknown {nameof(method)}: '{method}'");
+                    //}
                     return methodResult;
                 });
 
@@ -233,16 +239,17 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        private HttpClient MakeClientWithHeaders(ICommandLineOptions o, SequenceScript yaml, SequenceItem entry = null)
+        private HttpRequestMessage MakeRequestWithHeaders(ICommandLineOptions o, SequenceScript yaml, SequenceItem entry = null)
         {
-            var client = new HttpClient(); //HttpClientProvider.Client;
+            var retval = new HttpRequestMessage();
+            //var client = new HttpClient(); //HttpClientProvider.Client;
 
-            const int defaultClientTimeoutSeconds = 90;
-            client.Timeout = TimeSpan.FromSeconds(yaml.client_timeout_seconds ?? defaultClientTimeoutSeconds);
+            //const int defaultClientTimeoutSeconds = 90;
+            //client.Timeout = TimeSpan.FromSeconds(yaml.client_timeout_seconds ?? defaultClientTimeoutSeconds);
 
             var scribanModel = MakeScribanModel();
 
-            client.DefaultRequestHeaders.Accept.Clear();
+            //client.DefaultRequestHeaders.Accept.Clear();
             if (entry?.http?.header != null)
             {
 
@@ -258,28 +265,28 @@ namespace PlainSequencer.SequenceItemActions
                             var queryParts = val.Split(';');
                             if (queryParts.Length > 1)
                             {
-                                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(queryParts[0]));
+                                retval.Headers.Add("accept", new MediaTypeWithQualityHeaderValue(queryParts[0]).MediaType);
                                 foreach (var queryPart in queryParts.Skip(1))
                                 {
                                     var keyVal = queryPart.Split('=');
-                                    client.DefaultRequestHeaders.Add(keyVal[0], keyVal[1]);
+                                    retval.Headers.Add(keyVal[0], keyVal[1]);
                                 }
                             }
-                            else client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(val));
+                            else retval.Headers.Add("accept", new MediaTypeWithQualityHeaderValue(val).MediaType);
                         }
                     }
                     else
-                    { 
-                        client.DefaultRequestHeaders.Add(addHeader.Key, ScribanUtil.ScribanParse(addHeader.Value, scribanModel));
+                    {
+                        retval.Headers.Add(addHeader.Key, ScribanUtil.ScribanParse(addHeader.Value, scribanModel));
                     }
             }
 
             var contentType = entry.http.content_type ?? "text/plain";
 
-            if (client.DefaultRequestHeaders.Accept.Count == 0)
-                client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+            if (retval.Headers.Accept.Count == 0)
+                retval.Headers.Add("accept", new MediaTypeWithQualityHeaderValue(contentType).MediaType);
 
-            return client;
+            return retval;
         }
     }
 }

@@ -14,7 +14,7 @@ namespace PlainSequencer.SequenceItemActions
 
     public class SequenceItemTransform : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
 	{
-		public SequenceItemTransform(ISequenceLogger logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
+		public SequenceItemTransform(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
 			: base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
 		public IEnumerable<string> Compile(SequenceItem sequenceItem)

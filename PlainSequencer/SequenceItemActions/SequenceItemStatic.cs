@@ -127,9 +127,9 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        public static async Task<T> FailableRun<T>(ISequenceLogger logProgress, ISequenceItemAction sia, Func<Task<T>> f)
+        public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemAction sia, Func<Task<T>> f)
         {
-            logProgress.Starting((SequenceItemAbstract)sia);
+            logProgress.StartItem((SequenceItemAbstract)sia);
             sia.Started = DateTime.Now;
             var sir = (ISequenceItemResult)sia;
             try { return await f(); } 
@@ -137,6 +137,7 @@ namespace PlainSequencer.SequenceItemActions
             { 
                 sir.Exception = e;
                 sir.Fail(e);
+                return default(T);
             }
             finally
             {
@@ -148,9 +149,16 @@ namespace PlainSequencer.SequenceItemActions
                         logProgress.Fail((SequenceItemAbstract)sia, sir.FailMessage);
                 }
                 sia.Finished = DateTime.Now;
-                logProgress.Finished((SequenceItemAbstract)sia);
+                logProgress.FinishedItem((SequenceItemAbstract)sia);
+
+                if (sir.IsFail)
+                {
+                    if (!sia.SequenceItem.is_continue_on_failure)
+                        sir.NullResult();
+                    else if (sir.ActionResult is null)
+                        sir.BlankResult();
+                }
             }
-            return default(T);
         }
     }
 }

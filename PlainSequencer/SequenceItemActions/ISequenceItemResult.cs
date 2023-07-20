@@ -16,5 +16,9 @@ namespace PlainSequencer.SequenceItemActions
         string LiteralResponse { get; }
 
         object ActionResult { get; }
+
+        void NullResult();
+
+        void BlankResult();
     }
 }

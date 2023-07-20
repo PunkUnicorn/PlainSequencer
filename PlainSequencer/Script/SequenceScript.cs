@@ -7,30 +7,34 @@ namespace PlainSequencer.Script
 {
     public class SequenceScript
 	{
-		//public KeyVlueList header { get; set; }
-		public int? client_timeout_seconds { get; set; }
+		/// <summary>
+		/// False to return nothing on a failure, True to get all available results despite failures
+		/// </summary>
+        public bool output_after_failure;
+
+        //public KeyVlueList header { get; set; }
+        public int? client_timeout_seconds { get; set; }
 		public string run_id { get; set; }
 		public List<SequenceItem> sequence_items { get; set; }
 	}
 
-	//[Flags]
-	//public enum LoggerOutput
-	//{
-	//	Console,
-	//	NLog,
-	//	All = Console | NLog,
-	//}
-
-	//public class Logger
-	//{
-	//	/// <summary>
-	//	/// NLog, Console, All
-	//	/// </summary>
-	//	public LoggerOutput type { get; set; }
-	//	public string on_start_sequence { get; set; }
-	//	public string on_error { get; set; }
-	//	public string on_success { get; set; }
-	//}
+	/*
+		Scriban substitute strings have access to this model:
+            now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}";
+            run_id = guid string
+            command_args 
+				.IsStdIn
+				.JsonFile
+				//.Variables
+				.YamlFile
+				.Direct
+            model = model from the previous step
+            sequence_item = this yaml sequence item
+            peerIndex = fan out index to separate many instances of the same sequence item
+            prev_sequence_item = sequence item before us
+            next_sequence_items = array of sequence items in front of us
+            unique_no = unique number
+	*/
 
 
 	public class SequenceItem
@@ -92,13 +96,6 @@ namespace PlainSequencer.Script
         /// A scriban template to allow transformations of the model to a new format
         /// </summary>
         public string new_model_template { get; set; }
-		//public string OldValue(dynamic model) => model;
-		//public string NewValue(dynamic model) => string.IsNullOrWhiteSpace(new_model_template)
-		//	? ""
-		//	: ScribanUtil.ScribanParse(new_model_template, model);
-
-		// add OldValue and NewValue to the model
-		//public string breadcrumb { get; set; } = "{{sequence_item.transform.new_model_template}}";
 	}
 
 	// TODO: model stays as it was as it comes out the other side. Meanwhile the cloned model is passed into a new process
@@ -171,7 +168,7 @@ namespace PlainSequencer.Script
 	{
 		public string breadcrumb { get; set; } = "{{sequence_item.send.url}}";
 		public string method { get; set; }
-		public string base_url { get; set; }
+		//public string base_url { get; set; }
 		public string url { get; set; }
 		public string content_type { get; set; }
 		public NamedStringList query { get; set; }

@@ -6,6 +6,7 @@ using PlainSequencer.SequenceItemActions;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
 using PlainSequencer.Stuff;
+using PlainSequencer.Stuff.Interfaces;
 using System;
 using System.IO;
 
@@ -57,7 +58,10 @@ namespace PlainSequencer
                 builder.RegisterInstance(commandObj).As<ICommandLineOptions>()
                     .SingleInstance();
 
-                builder.RegisterType<SequenceLogger>().As<ISequenceLogger>()
+                builder.RegisterType<ConsoleOutputter>().As<IConsoleOutputter>()
+                    .SingleInstance();
+
+                builder.RegisterType<LogSequence>().As<ILogSequence>()
                     .SingleInstance();
 
                 builder.RegisterType<Application>()

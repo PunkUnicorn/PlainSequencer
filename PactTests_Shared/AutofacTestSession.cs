@@ -6,12 +6,16 @@ using PlainSequencer.Options;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
 using PlainSequencer.Stuff;
+using PlainSequencer.Stuff.Interfaces;
 using static PlainSequencer.Program;
 
 namespace PactTests_Shared
 {
     public static class AutofacTestSession
     {
+        private static ConsoleOutputterTest testOutput => new ConsoleOutputterTest();
+        public static string TestOutput => testOutput.Output;
+
         public static IContainer ConfigureTestSession(CommandLineOptions testOptions)
         {
             var builder = new ContainerBuilder();
@@ -20,7 +24,12 @@ namespace PactTests_Shared
                 builder.RegisterInstance(testOptions).As<ICommandLineOptions>()
                     .SingleInstance();
 
-            builder.RegisterType<SequenceLogger>().As<ISequenceLogger>()
+            builder.RegisterType<ConsoleOutputterTest>()
+                .As<IConsoleOutputter>()
+                .AsSelf()
+                .SingleInstance();
+
+            builder.RegisterType<LogSequence>().As<ILogSequence>()
                 .SingleInstance();
 
             builder.RegisterType<Application>()

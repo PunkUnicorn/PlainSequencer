@@ -1,10 +1,12 @@
 ﻿using Newtonsoft.Json;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemActions;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
 using PlainSequencer.Stuff;
+using PlainSequencer.Stuff.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,14 +22,23 @@ namespace PlainSequencer
         private readonly ILoadScript scriptLoader;
         private readonly ISequenceItemActionBuilderFactory itemActionBuilderFactory;
         private readonly IHttpClientProvider httpClientProvider;
+        private readonly IConsoleOutputter outputter;
+        private readonly ILogSequence logSequence;
         private SequenceScript script;
 
-        public Application(ICommandLineOptions commandLineOptions, ILoadScript scriptLoader, ISequenceItemActionBuilderFactory itemActionBuilderFactory, IHttpClientProvider httpClientProvider)
+        public Application(ICommandLineOptions commandLineOptions, 
+            ILoadScript scriptLoader, 
+            ISequenceItemActionBuilderFactory itemActionBuilderFactory, 
+            IHttpClientProvider httpClientProvider, 
+            IConsoleOutputter outputter,
+            ILogSequence logSequence)
         {
             this.commandLineOptions = commandLineOptions;
             this.scriptLoader = scriptLoader;
             this.itemActionBuilderFactory = itemActionBuilderFactory;
             this.httpClientProvider = httpClientProvider;
+            this.outputter = outputter;
+            this.logSequence = logSequence;
         }
 
         private int uniqueNo = 0;
@@ -52,6 +63,9 @@ namespace PlainSequencer
             var firstSequenceItem = script.sequence_items.FirstOrDefault();
             var nextSequenceItems = script.sequence_items.Skip(1).ToArray();
 
+            const int defaultClientTimeoutSeconds = 90;
+            httpClientProvider.Client.Timeout = TimeSpan.FromSeconds(script.client_timeout_seconds ?? defaultClientTimeoutSeconds);
+
             Script = this.script;
             RunId = script.run_id;
             var runItem = itemActionBuilderFactory.Fetch(null, startModel, firstSequenceItem, nextSequenceItems);
@@ -60,20 +74,21 @@ namespace PlainSequencer
             var model = await runItem.ActionAsync(cancellationToken);
             var result = (ISequenceItemResult)runItem;
 
-            var isContinue = result.IsFail
-                ? Top.SequenceItem.is_continue_on_failure
+            var isOutput = result.IsFail
+                ? script.output_after_failure
                 : true;
 
-            if (isContinue)
-                Console.WriteLine(JsonConvert.SerializeObject(model, Formatting.Indented));
-
+            if (isOutput)
+            {
+                var modelStr = JsonConvert.SerializeObject(model ?? "", Formatting.Indented);
+                logSequence.SequenceComplete(!result.IsFail, modelStr);
+                outputter.WriteLine(modelStr);
+            }
             return !result.IsFail;
         }
 
         public static object TurnStringResponseIntoModel(string content)
         {
-            // Note: instead of nested try try, could use switch statement pattern matching to solve this problem
-            //       deserialising to an object then a switch pattern match from that
             object responseModel = null;
             bool resolved = false;
             try
