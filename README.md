@@ -16,7 +16,7 @@ The sequence can either fan-out with arrays or pass the array as one whole thing
 
 That one has full diagnostics turned on, here's the same journey but without diagnostics:
 
-![](PactTests_ClosedTests/FourSequences_Get_Load_Transform_Check?raw=true)
+![](PactTests_ClosedTests/FourSequences_Get_Load_Transform_Check.png)
 
 Mostly though, I use this tool to chain two or three http requests together, sometimes starting with a csv file. Here's the first journey, but shown when things go wrong:
 
