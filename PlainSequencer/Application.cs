@@ -82,7 +82,8 @@ namespace PlainSequencer
             {
                 var modelStr = JsonConvert.SerializeObject(model ?? "", Formatting.Indented);
                 logSequence.SequenceComplete(!result.IsFail, modelStr);
-                outputter.WriteLine(modelStr);
+                if (modelStr.Length > 0)
+                    outputter.WriteLine(modelStr);
             }
             return !result.IsFail;
         }

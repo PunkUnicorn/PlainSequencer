@@ -8,12 +8,11 @@ using PlainSequencer;
 using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
-using PlainSequencer.SequenceItemActions;
 using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
-using System.Dynamic;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -128,11 +127,14 @@ namespace PactTests_ClosedTests
 
                 var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
- 
-                sequenceNotation.Should().Contain($"title {MethodBase.GetCurrentMethod().Name}");
-                sequenceNotation.Should().Contain("one of two expect success->two of two expect success:{\\n  \"Id\": \"00000001\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect success->two of two expect success:{\\n  \"Id\": \"00000002\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect success->two of two expect success:{\\n  \"Id\": \"00000003\"\\n}");
+
+                Regex MakeRegex(int i)
+                    => new Regex(@$"^.*one of two expect success->two of two expect success:.*0000000{i}.*$", RegexOptions.Multiline);
+
+                sequenceNotation.Should().StartWith($"title {MethodBase.GetCurrentMethod().Name}");
+                sequenceNotation.Should().MatchRegex(MakeRegex(1));
+                sequenceNotation.Should().MatchRegex(MakeRegex(2));
+                sequenceNotation.Should().MatchRegex(MakeRegex(3));
             }            
         }
 
@@ -197,20 +199,22 @@ namespace PactTests_ClosedTests
                 /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
 
                 var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title, SequenceProgressLogLevel.Brief);
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
                 mrOutput.WriteLine(sequenceNotation);               
                 
-                sequenceNotation.Should().Contain($"title {title}");
-                sequenceNotation.Should().Contain("one of two expect fail on the second only->two of two expect fail on the second only:{\\n  \"Id\": \"00000001\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect fail on the second only-xtwo of two expect fail on the second only:{\\n  \"Id\": \"00000002\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect fail on the second only->two of two expect fail on the second only:{\\n  \"Id\": \"00000003\"\\n}");
-                //two of two expect fail on the second only-xResult:[\n  {\n    "detail": "More detail for id 00000001"\n  },\n  {\n    "detail": "More detail for id 00000003"\n  }\n]
+                sequenceNotation.Should().StartWith($"title {title}");
+                Regex MakeRegex(int i, char a) 
+                    => new Regex(@$"^.*one of two expect fail on the second only-{a}two of two expect fail on the second only:.*0000000{i}.*$", RegexOptions.Multiline);
 
-                var expectedLastLine = "two of two expect fail on the second only-xResult:[\\n  {\\n    \"detail\": \"More detail for id 00000001\"\\n  },\\n  {\\n    \"detail\": \"More detail for id 00000003\"\\n  }\\n]";
+                sequenceNotation.Should().MatchRegex(MakeRegex(1, '>'));
+                sequenceNotation.Should().MatchRegex(MakeRegex(2, 'x'));
+                sequenceNotation.Should().MatchRegex(MakeRegex(3, '>'));
+
+                var expectedLastLineRegex = new Regex("^.*two of two expect fail on the second only-xResult:.*More detail for id 00000001.*More detail for id 00000003.*$", RegexOptions.Multiline);
                 if (outputDespiteErrors)
-                    sequenceNotation.Should().Contain(expectedLastLine);
+                    sequenceNotation.Should().MatchRegex(expectedLastLineRegex);
                 else
-                    sequenceNotation.Should().NotContain(expectedLastLine);
+                    sequenceNotation.Should().NotMatchRegex(expectedLastLineRegex);
             }
         }
 
@@ -277,16 +281,20 @@ namespace PactTests_ClosedTests
                 var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
                 var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
                 mrOutput.WriteLine(sequenceNotation);
-                sequenceNotation.Should().Contain($"title {title}");
-                sequenceNotation.Should().Contain("one of two expect fail on the first two-xtwo of two expect fail on the first two:{\\n  \"Id\": \"00000001\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect fail on the first two-xtwo of two expect fail on the first two:{\\n  \"Id\": \"00000002\"\\n}");
-                sequenceNotation.Should().Contain("one of two expect fail on the first two->two of two expect fail on the first two:{\\n  \"Id\": \"00000003\"\\n}");
 
-                var expectedLastLine = "two of two expect fail on the first two-xResult:[\\n  {\\n    \"detail\": \"More detail for id 00000003\"\\n  }\\n]";
+                sequenceNotation.Should().StartWith($"title {title}");
+                Regex MakeRegex(int i, char a)
+                    => new Regex(@$"^.*one of two expect fail on the first two-{a}two of two expect fail on the first two:.*0000000{i}.*$", RegexOptions.Multiline);
+
+                sequenceNotation.Should().MatchRegex(MakeRegex(1, 'x'));
+                sequenceNotation.Should().MatchRegex(MakeRegex(2, 'x'));
+                sequenceNotation.Should().MatchRegex(MakeRegex(3, '>'));
+
+                var expectedLastLineRegex = new Regex("^.*two of two expect fail on the first two-xResult:.*More detail for id 00000003.*$", RegexOptions.Multiline);
                 if (outputDespiteErrors)
-                    sequenceNotation.Should().Contain(expectedLastLine);
+                    sequenceNotation.Should().MatchRegex(expectedLastLineRegex);
                 else
-                    sequenceNotation.Should().NotContain(expectedLastLine);
+                    sequenceNotation.Should().NotMatchRegex(expectedLastLineRegex);
             }
         }
     }

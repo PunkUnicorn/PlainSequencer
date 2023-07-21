@@ -73,6 +73,8 @@ namespace PlainSequencer.SequenceItemActions
 
         public SequenceItem SequenceItem => this.sequenceItem;
 
+        public int PeerIndex => peerIndex;
+
         public string FullAncestryName =>
             string.Join(".", 
                 new[] { this.Name }.Concat(GetParents()).Reverse() 
@@ -126,13 +128,11 @@ namespace PlainSequencer.SequenceItemActions
 
         public string Name => sequenceItem.name;
 
-        //public string Notes => sequenceItem.notes;
-
         protected abstract Task<object> ActionAsyncInternal(CancellationToken cancelToken);
 
         public string[] GetParents()
         {
-            var aboveMe = new List<string>() { this.Name };
+            var aboveMe = new List<string>();// { this.Name };
             for (var parent = this.Parent; parent != null; parent = parent.Parent)
                 aboveMe.Add(parent.Name);
 
@@ -142,11 +142,10 @@ namespace PlainSequencer.SequenceItemActions
         public async Task<object> ActionAsync(CancellationToken cancelToken)
         {
             var nextModel = await ActionAsyncInternal(cancelToken);
-            
             if (!IsFail || (IsFail && sequenceItem.is_continue_on_failure))
                 return await CascadeNextActionAsync(cancelToken, nextModel);
 
-            return nextModel;// null;
+            return nextModel;
         }
 
         protected async Task<object> CascadeNextActionAsync(CancellationToken cancelToken, object nextModel)

@@ -512,7 +512,7 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
 
         [Theory]
         [InlineData(false, "")]
-        [InlineData(true, "[{\"detail\":\"expectedMoreDetailString\"}]")]
+        [InlineData(true, "{\"detail\":\"expectedMoreDetailString\"}")]
         public void ThreeSequences_CheckFails(bool outputDespiteErrors, string expectedOutput)
         {
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
@@ -532,7 +532,7 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                 {
                     Status = 200,
                     Headers = new Dictionary<string, object> { { "Content-Type", "application/json; charset=utf-8" } },
-                    Body = new List<object> { new { Id = "00000001" } }
+                    Body =  new { Id = "00000001" }
                 });
 
             ConsumeTestYamlPact.MockProviderService
@@ -571,7 +571,7 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                     new SequenceItem
                     {
                         name = "two-of-three-check-at-end-fails",
-                        is_model_array = true,
+                        //is_model_array = true,
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -624,14 +624,14 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                 var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
                 mrOutput.WriteLine(sequenceNotation);
 
-                sequenceNotation.Should().Contain($"title {title}");
+                sequenceNotation.Should().StartWith($"title {title}");
                 sequenceNotation.Should().Contain("two of three check at end fails-xthree of three check at end fails:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}");
 
-                var expectedLastResultLine = "three of three check at end fails-xResult:[\\n  {\\n    \"detail\": \"expectedMoreDetailString\"\\n  }\\n]";
+                var expectedLastResultLine = "three of three check at end fails-xResult:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}";
                 if (outputDespiteErrors)
-                    sequenceNotation.Should().Contain(expectedLastResultLine);
+                    sequenceNotation.Should().EndWith(expectedLastResultLine);
                 else
-                    sequenceNotation.Should().NotContain(expectedLastResultLine);
+                    sequenceNotation.Should().NotEndWith(expectedLastResultLine);
             }
         }
     }

@@ -60,7 +60,7 @@ namespace PlainSequencer.SequenceItemActions
 				var responseContent = execReturn;
 				LiteralResponse = execReturn;
 
-				var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, execReturn);
+				var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, execReturn);
 				ActionResult = responseModel;
 
 				return ActionResult;

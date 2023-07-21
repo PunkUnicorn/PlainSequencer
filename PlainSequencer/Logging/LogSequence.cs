@@ -78,6 +78,10 @@ namespace PlainSequencer.Logging
             };
 
             sequenceArrows.Add(item.PeerUniqueFullName.GetHashCode(), sa);
+            
+            if (item.SequenceItem.is_model_array)
+                sa.NotesFollowing.Add($"<{SequenceProgressLogLevel.Diagnostic}>//Fan out {item.PeerIndex}//");
+
         }
 
         private static string CleanModel(string model) => model?.ToString()?.Replace("\n", "\\n")?.Replace("\r", "") ?? "...";
@@ -98,24 +102,15 @@ namespace PlainSequencer.Logging
                 .Select(item => item.Key)
                 .ToArray();
 
-            //foreach (var key in noLineFromKeys)
-            //{
             var newArrow = new SequenceArrow
             {
                 To = "Result",
-                From = noFrom,//sequenceArrows[key].To,
-                Description = CleanModel(model)// sequenceArrows[key].Description,
+                From = noFrom,
+                Description = CleanModel(model)
             };
             newArrow.ArrowNotation = isSuccess ? newArrow.ArrowNotation : "-x";
-
-            //if (noLineFromKeys.Last() == key)
-            //{
-            //    newArrow.NotesFollowing.Add($"<{SequenceProgressLogLevel.Brief}>{model}");
-            //}
             var guidHashcode = Guid.NewGuid().GetHashCode();
-            //var insertAfter = sequenceArrows[key]
             sequenceArrows.Add(guidHashcode, newArrow);
-            //}
         }
 
         public string GetSequenceDiagramNotation(string title, SequenceProgressLogLevel level = SequenceProgressLogLevel.Diagnostic)

@@ -69,7 +69,7 @@ namespace PlainSequencer.SequenceItemActions
                 LiteralResponse = responseContent;
 
                 this.logProgress?.DataInProgress(this, $" received {responseContentLength} bytes...", SequenceProgressLogLevel.Brief);
-                dynamic responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, responseContent);
+                dynamic responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, responseContent);
 
                 SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
 

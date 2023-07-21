@@ -12,8 +12,6 @@ namespace PlainSequencer.SequenceItemActions
 
         string Name { get; }
 
-        //string Notes { get; }
-
         SequenceItem SequenceItem { get; }
 
         ISequenceItemActionHierarchy Parent { get; set; }
@@ -23,6 +21,8 @@ namespace PlainSequencer.SequenceItemActions
         SequenceItem[] NextSequenceItems { get; }
 
         string[] GetParents();
+
+        int PeerIndex { get; }
 
         string FullAncestryName { get; }
 

@@ -30,38 +30,64 @@ namespace PlainSequencer.SequenceItemActions
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-			return await FailableRun<object>(logProgress, this, async delegate {
-				++this.ActionExecuteCount;
+			return await FailableRun(logProgress, this, async delegate
+            {
+                ++this.ActionExecuteCount;
 
-				if (this.sequenceItem.load == null)
-					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.load)} missing");
-
-				this.logProgress?.Progress(this, $"Loading {this.sequenceItem.load.csv}...", SequenceProgressLogLevel.Brief);
+                if (this.sequenceItem.load == null)
+                    throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.load)} missing");
 
                 var scribanModel = MakeScribanModel();
 
-                var loadfile = ScribanUtil.ScribanParse(this.sequenceItem?.load?.csv ?? "", scribanModel);
+                string stringContent = null;
+                if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.csv))
+                    stringContent = LoadCsv(scribanModel);
+                else if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.json))
+                    stringContent = LoadJson(scribanModel);
+                else
+                    throw new InvalidOperationException("Neither load sections (csv, json) are populated.");
 
-				var csvRows = LoadCsvFile(this.sequenceItem.load, loadfile);
-
-				var noOfRows = csvRows?.Count() ?? 0;
-
-                var stringContent = JsonConvert.SerializeObject(csvRows);
                 LiteralResponse = stringContent;
 
-                var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, stringContent);// csvRows.ToList<dynamic>());
+                var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);// csvRows.ToList<dynamic>());
                 ActionResult = responseModel;
-				return ActionResult;
-			});
+                return ActionResult;
+            });
 		}
 
-		private List<IDictionary<string, object>> LoadCsvFile(Load load, string filename)
+        private string LoadJson(object scribanModel)
+        {
+            this.logProgress?.Progress(this, $"Loading json {this.sequenceItem.load.json}...", SequenceProgressLogLevel.Brief);
+
+            var loadfile = ScribanUtil.ScribanParse(this.sequenceItem?.load?.json ?? "", scribanModel);
+
+            var retval = File.ReadAllText(loadfile);
+            
+            this.logProgress?.DataInProgress(this, $"Loaded json {retval.Length} bytes from {loadfile}...", SequenceProgressLogLevel.Brief);
+            
+            return retval;
+        }
+
+        private string LoadCsv(object scribanModel)
+        {
+            this.logProgress?.Progress(this, $"Loading {this.sequenceItem.load.csv}...", SequenceProgressLogLevel.Brief);
+
+            var loadfile = ScribanUtil.ScribanParse(this.sequenceItem?.load?.csv ?? "", scribanModel);
+
+            var csvRows = LoadCsvFile(this.sequenceItem.load, loadfile);
+
+            var stringContent = JsonConvert.SerializeObject(csvRows);
+            return stringContent;
+        }
+
+        private List<IDictionary<string, object>> LoadCsvFile(Load load, string filename)
 		{
             var readData = File.ReadAllText(filename);
-            this.logProgress?.DataInProgress(this, $"Loaded {readData.Length} bytes from {filename}...", SequenceProgressLogLevel.Brief);
+            this.logProgress?.DataInProgress(this, $"Loaded csv {readData.Length} bytes from {filename}...", SequenceProgressLogLevel.Brief);
 
             List<IDictionary<string, object>> csvRows = null;
 
+            int headerCount = 0;
             using (var reader = new StringReader(readData))
             using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
             {
@@ -77,7 +103,12 @@ namespace PlainSequencer.SequenceItemActions
                         k => k.Key,
                         v => v.Value));
                 }
+
+                if (headerCount == 0 && csvRows.Count > 0)
+                    headerCount = csvRows.First().Keys.Count;
+
             }
+            this.logProgress?.DataInProgress(this, $" found {csvRows.Count} rows with {headerCount} columns...", SequenceProgressLogLevel.Brief);
             return csvRows;
         }
     }

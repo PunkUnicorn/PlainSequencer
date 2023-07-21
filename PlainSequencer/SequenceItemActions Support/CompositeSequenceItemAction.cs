@@ -181,6 +181,8 @@ namespace PlainSequencer.SequenceItemSupport
 
         public string FullAncestryName() => Children.FirstOrDefault()?.FullAncestryName;
 
+        public int PeerIndex => throw new NotImplementedException();
+
         public string FailMessage
         {
             get

@@ -1,6 +1,5 @@
 ﻿using Newtonsoft.Json;
 using PlainSequencer.Logging;
-using PlainSequencer.Script;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -11,26 +10,16 @@ namespace PlainSequencer.SequenceItemActions
 {
     public static class SequenceItemStatic
     {
-        public static dynamic GetResponseItems(SequenceItem sequenceItem, string content)
+        public static dynamic GetResponseItems(ILogSequence logSequence, SequenceItemAbstract item, string content)
         {
             dynamic responseModel = null;
-            var item_quantity_cap = sequenceItem?.take_only_n;
+            var item_quantity_cap = item.SequenceItem?.take_only_n;
             try
             {
-                //if (item_quantity_cap != null)
-                //    state.ProgressLog?.Progress($" taking the first {item_quantity_cap} results only...");
-
-                //if (item_quantity_cap != null)
-                //    responseModel = JsonConvert.DeserializeObject<List<IDictionary<string, object>>>(content).Take(item_quantity_cap.Value).ToList();
-                //else
-                //{
-
                 bool resolved = false;
                 try 
                 {
-                    //content = "[{\"Id\":\"00000001\"}]";
                     responseModel = JsonConvert.DeserializeObject<List<ExpandoObject>>(content);
-                    //var look = JsonConvert.SerializeObject(responseModel, Formatting.Indented);
                     resolved = true;
                 } catch { }
 
@@ -40,12 +29,13 @@ namespace PlainSequencer.SequenceItemActions
                     resolved = true;
                 } catch { }
 
-                //if (!resolved) try
-                //{
-                //    responseModel = JsonConvert.DeserializeObject<IDictionary<string, object>>(content);
-                //    resolved = true;
-                //}
-                //catch { }
+                if (!resolved) try
+                {
+                    responseModel = JsonConvert.DeserializeObject<IDictionary<string, object>>(content);
+                    responseModel = JsonConvert.DeserializeObject<ExpandoObject>(JsonConvert.SerializeObject(responseModel));
+                    resolved = true;
+                }
+                catch { }
 
                 if (!resolved)
                 {
@@ -53,30 +43,9 @@ namespace PlainSequencer.SequenceItemActions
                 }
                 else if (item_quantity_cap != null)
                 {
-                    //state.ProgressLog?.Progress(this, $" taking the first {item_quantity_cap} results only...");
+                    logSequence?.Progress(item, $" taking the first {item_quantity_cap} results only...", SequenceProgressLogLevel.Diagnostic);
                     responseModel = ((IEnumerable<object>)responseModel).Take(item_quantity_cap.Value).ToList();
                 }
-                //}
-            }
-            catch
-            {
-                responseModel = content;
-            }
-            return responseModel;
-        }
-
-        public static dynamic GetResponseItems(SequenceItem sequenceItem, List<dynamic> content)
-        {
-            dynamic responseModel;
-            var item_quantity_cap = sequenceItem?.take_only_n;
-            try
-            {
-                //if (item_quantity_cap != null)
-                //    state.ProgressLog?.Progress($" taking the first {item_quantity_cap} results only...");
-
-                responseModel = item_quantity_cap != null
-                    ? content.Take(item_quantity_cap.Value).ToList()
-                    : content;
             }
             catch
             {
@@ -109,11 +78,8 @@ namespace PlainSequencer.SequenceItemActions
                 catch { }
 
                 if (!resolved)
-                {
-                    //clone = (JsonConvert.DeserializeObject<ExpandoObject>(content) as IDictionary<string, object>)
-                    //    .ToDictionary(k => k.Key, v => v.Value);
                     clone = (object)JsonConvert.DeserializeObject<object>(content);                        
-                }
+
                 return clone;
             }
             catch 
@@ -122,8 +88,6 @@ namespace PlainSequencer.SequenceItemActions
                     return new String(strModel.ToArray()); 
 
                 throw;
-                //throw new InvalidCastException(content);
-                ////return model;
             }
         }
 

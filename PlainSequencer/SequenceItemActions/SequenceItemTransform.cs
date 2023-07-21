@@ -41,7 +41,7 @@ namespace PlainSequencer.SequenceItemActions
 				LiteralResponse = scribanProcessedTemplate;
 				this.logProgress?.Progress(this, $"Transformed to:\n {scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
 
-				var responseModel = SequenceItemStatic.GetResponseItems(this.sequenceItem, scribanProcessedTemplate);
+				var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, scribanProcessedTemplate);
 
 				ActionResult = responseModel;
 				return ActionResult;
