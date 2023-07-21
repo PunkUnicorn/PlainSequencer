@@ -20,7 +20,7 @@ That one has full diagnostics turned on, here's the same journey but without dia
 
 Mostly though, I use this tool to chain two or three http requests together, sometimes starting with a csv file. But csv files can be loaded on route to be transformed with an http's response.
 
-The first journey in this readme was a success path, but tere's the first journey again but shown when things go wrong. This will exit with an error code on the console but still output what it can to stdout:
+The first journey in this readme was a success path, but here's the first journey again but shown when things go wrong. This will exit with an error code on the console but still output what it can to stdout:
 
 ![](PactTests_ClosedTests/FansOutThree_ExpectedFailForOne%20outputDespiteErrors=True.png)
 
