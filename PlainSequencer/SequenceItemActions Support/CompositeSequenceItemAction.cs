@@ -102,6 +102,9 @@ namespace PlainSequencer.SequenceItemSupport
                 return allResults.ToArray();
             }
         }
+        public Dictionary<string, object> NewVariables { get => throw new NotImplementedException(); }
+
+        public Dictionary<string, object> NewFileData { get => throw new NotImplementedException(); }
 
         public void NullResult() => throw new NotImplementedException();
         public void BlankResult() => throw new NotImplementedException();
@@ -110,7 +113,7 @@ namespace PlainSequencer.SequenceItemSupport
         {
             var retval = new List<ISequenceItemActionHierarchy>();
 
-            var first = SequenceItemStatic.Clone(models.FirstOrDefault());
+            var first = SequenceItemStatic.Clone(models?.FirstOrDefault());
             if (first == null) return null;
 
             var peerIndex = 0;

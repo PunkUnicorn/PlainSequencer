@@ -1,4 +1,5 @@
-﻿using PlainSequencer.Logging;
+﻿using PlainSequencer.Autofac;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
@@ -33,6 +34,16 @@ namespace PlainSequencer.SequenceItemActions
 
         public void BlankResult() => ActionResult = string.Empty;
 
+        public Dictionary<string, object> NewVariables { get; } = new Dictionary<string, object>();
+
+        public Dictionary<string, object> NewFileData { get; } = new Dictionary<string, object>();
+
+        [AutofacInjected]
+        public IServiceGlobalData GlobalDataService { get; set; }
+
+        [AutofacInjected]
+        public IServiceFileData GlobalFileService { get; set; }
+
         public SequenceItemAbstract(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
         {
             this.logProgress = logProgress;
@@ -49,6 +60,7 @@ namespace PlainSequencer.SequenceItemActions
 
         protected object MakeScribanModel()
         {
+            // Add mundane items
             var retval = new ExpandoObject() as dynamic;
             retval.now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}";
             retval.run_id = this.session.RunId;
@@ -60,6 +72,15 @@ namespace PlainSequencer.SequenceItemActions
             retval.next_sequence_items = this.NextSequenceItems;
             retval.unique_no = session.UniqueNo;
             var asDict = (IDictionary<string, object>)retval;
+
+            // Add global data
+            foreach (var var in GlobalDataService.GetData())
+                asDict.Add(var.Key, var.Value);
+
+            // Add files
+            foreach (var fileKey in GlobalFileService.GetFileKeys())
+                asDict.Add(fileKey, GlobalFileService.GetFileData(fileKey));
+
             return asDict.ToDictionary(k => k.Key, v => v.Value);
         }
 
@@ -132,7 +153,7 @@ namespace PlainSequencer.SequenceItemActions
 
         public string[] GetParents()
         {
-            var aboveMe = new List<string>();// { this.Name };
+            var aboveMe = new List<string>();
             for (var parent = this.Parent; parent != null; parent = parent.Parent)
                 aboveMe.Add(parent.Name);
 
@@ -158,7 +179,10 @@ namespace PlainSequencer.SequenceItemActions
 
             var runItem = itemActionBuilderFactory.Fetch(this, nextModel, nextItem, nextItemsNextItems.ToArray());
 
-            return await runItem.ActionAsync(cancelToken);
+            if (runItem is not null)
+                return await runItem.ActionAsync(cancelToken);
+
+            return nextModel;
         }
     }
 }

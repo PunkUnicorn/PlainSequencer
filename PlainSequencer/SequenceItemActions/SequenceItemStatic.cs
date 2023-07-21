@@ -91,11 +91,11 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemAction sia, Func<Task<T>> f)
+        public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemAction siAct, Func<Task<T>> f)
         {
-            logProgress.StartItem((SequenceItemAbstract)sia);
-            sia.Started = DateTime.Now;
-            var sir = (ISequenceItemResult)sia;
+            logProgress.StartItem((SequenceItemAbstract)siAct);
+            siAct.Started = DateTime.Now;
+            var sir = (ISequenceItemResult)siAct;
             try { return await f(); } 
             catch (Exception e) 
             { 
@@ -105,22 +105,39 @@ namespace PlainSequencer.SequenceItemActions
             }
             finally
             {
+                siAct.Finished = DateTime.Now;
+                logProgress.FinishedItem((SequenceItemAbstract)siAct);
+
+                var siStract = (SequenceItemAbstract)siAct;
+                var isAddVarsEtc = !sir.IsFail;
                 if (sir.IsFail)
                 {
                     if (sir.Exception != null)
-                        logProgress.Fail((SequenceItemAbstract)sia, sir.Exception);
+                        logProgress.Fail(siStract, sir.Exception);
                     else
-                        logProgress.Fail((SequenceItemAbstract)sia, sir.FailMessage);
-                }
-                sia.Finished = DateTime.Now;
-                logProgress.FinishedItem((SequenceItemAbstract)sia);
+                        logProgress.Fail(siStract, sir.FailMessage);
 
-                if (sir.IsFail)
-                {
-                    if (!sia.SequenceItem.is_continue_on_failure)
+                    if (!siAct.SequenceItem.is_continue_on_failure)
                         sir.NullResult();
                     else if (sir.ActionResult is null)
                         sir.BlankResult();
+
+                    isAddVarsEtc = siAct.SequenceItem.is_continue_on_failure;
+                }
+
+                if (isAddVarsEtc)
+                {
+                    foreach (var newVar in sir.NewVariables)
+                    {
+                        siStract.GlobalDataService.UpsertData(newVar.Key, newVar.Value);
+                        logProgress?.Progress(siStract, $"Variable added:'{newVar.Key}'={newVar.Value}", SequenceProgressLogLevel.Diagnostic);
+                    }
+
+                    foreach (var newFile in sir.NewFileData)
+                    {
+                        siStract.GlobalFileService.UpsertFileData(newFile.Key, newFile.Value);
+                        logProgress?.Progress(siStract, $"File added as variable:'{newFile.Key}'", SequenceProgressLogLevel.Diagnostic);
+                    }
                 }
             }
         }

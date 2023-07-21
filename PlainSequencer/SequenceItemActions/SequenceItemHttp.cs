@@ -41,9 +41,11 @@ namespace PlainSequencer.SequenceItemActions
 
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
-            return await FailableRun<object>(logProgress, this, async delegate {
-                ++this.ActionExecuteCount;
-            
+            return await FailableRun<object>(logProgress, this, async delegate 
+            {
+                var w = Policy.Handle<Exception>()
+                    .WaitAndRetryAsync(this.SequenceItem.max_retries ?? 0, (i) => TimeSpan.FromSeconds(1));
+
                 if (this.sequenceItem.http == null)
                     throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.http)} missing");
 
@@ -53,35 +55,38 @@ namespace PlainSequencer.SequenceItemActions
 
                 this.WorkingUri = ScribanUtil.ScribanParse(this.sequenceItem.http.url, scribanModel);
 
-                this.logProgress?.Progress(this, $"Processing {this.WorkingUri}...", SequenceProgressLogLevel.Brief);
-                
                 var request = MakeRequestWithHeaders(this.commandLineOptions, this.session.Script, this.sequenceItem);
-                var http_response = await DoHttpActionAsync(request, scribanModel);
-                var statusCodeFail = !http_response.IsSuccessStatusCode;
-                if (statusCodeFail)
-                    Fail($"Http response status code: {http_response.StatusCode}");
 
-                var responseContentLength = http_response?.Content?.Headers?.ContentLength ?? 0;
-                var responseContent = responseContentLength > 0
-                    ? (await http_response?.Content?.ReadAsStringAsync())
-                    : string.Empty;
+                return await w.ExecuteAsync(async () =>
+                {
+                    ++this.ActionExecuteCount;
 
-                LiteralResponse = responseContent;
+                    var http_response = await DoHttpActionAsync(request, scribanModel);
+                    var statusCodeFail = !http_response.IsSuccessStatusCode;
+                    if (statusCodeFail)
+                        Fail($"Http response status code: {http_response.StatusCode}");
 
-                this.logProgress?.DataInProgress(this, $" received {responseContentLength} bytes...", SequenceProgressLogLevel.Brief);
-                dynamic responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, responseContent);
+                    var responseContentLength = http_response?.Content?.Headers?.ContentLength ?? 0;
+                    var responseContent = responseContentLength > 0
+                        ? (await http_response?.Content?.ReadAsStringAsync())
+                        : string.Empty;
 
-                SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
+                    LiteralResponse = responseContent;
 
-                ActionResult = responseModel;
-                return ActionResult;
+                    this.logProgress?.DataInProgress(this, $" received {responseContentLength} bytes...", SequenceProgressLogLevel.Diagnostic);
+                    dynamic responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, responseContent);
+
+                    SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
+
+                    ActionResult = responseModel;
+                    return ActionResult;
+                });
             });
         }
 
         private async Task<HttpResponseMessage> DoHttpActionAsync(HttpRequestMessage request, object scribanModel)
         {
             this.WorkingMethod = this.sequenceItem.http.method;
-            this.logProgress?.DataOutProgress(this, $" using method '{this.sequenceItem.http.method}'...", SequenceProgressLogLevel.Diagnostic);
 
             if (this.sequenceItem.http.query != null)
                 WorkingUri = AppendQuery(this.WorkingUri, scribanModel);
@@ -89,15 +94,12 @@ namespace PlainSequencer.SequenceItemActions
             if (this.sequenceItem.http?.body != null)
             {
                 this.WorkingBody = ScribanUtil.ScribanParse(this.sequenceItem.http.body, scribanModel);
-                this.logProgress?.DataOutProgress(this, $" using content body \n'{this.WorkingBody}'\n...", SequenceProgressLogLevel.Diagnostic);
 
                 if (this.sequenceItem.http.save.request_content_filename != null)
                 {
                     SaveTextRequest(scribanModel, WorkingBody);
                 }
             }
-
-            this.logProgress?.DataOutProgress(this, $" using url '{this.WorkingUri}'...", SequenceProgressLogLevel.Diagnostic);
 
             // Process the response content
             var contentType = request.Headers.Where(w => w.Key.Equals("accept", StringComparison.OrdinalIgnoreCase )).FirstOrDefault().Value.First().ToString();
@@ -184,54 +186,22 @@ namespace PlainSequencer.SequenceItemActions
             // and clear the default request headers in the provider
             try
             {
-                // Do the retry elsewhere
-                var policy = Policy
-                  .Handle<Exception>()
-                  .Retry(instantRetryCount ?? 1);
+                request.Method = new HttpMethod(method);
+                request.RequestUri = new Uri(this.WorkingUri);
 
-                var retryCount = 0;
-                var ret = policy.Execute<Task<HttpResponseMessage>>(async () => 
-                {
-                    request.Method = new HttpMethod(method);
-                    request.RequestUri = new Uri(this.WorkingUri);
+                if (request.Method != new HttpMethod("get"))
+                    request.Content = new StringContent(workingBody, Encoding.UTF8, mediaType);
 
-                    if (request.Method != new HttpMethod("get"))
-                        request.Content = new StringContent(workingBody, Encoding.UTF8, mediaType);
+                var attemptDescription = ActionExecuteCount == 1
+                    ? ""
+                    : $" (retry {ActionExecuteCount-1})";
 
-                    var attemptDescription = retryCount++ == 0
-                        ? ""
-                        : $" (retry {retryCount})";
+                logProgress?.DataOutProgress(this, $"HTTP {method} {WorkingUri}{attemptDescription}...", SequenceProgressLogLevel.Brief);
+                if (this.SequenceItem.http.body != null)
+                    logProgress?.DataOutProgress(this, $" using content body \n'{WorkingBody}'\n...", SequenceProgressLogLevel.Diagnostic);
 
-                    this.logProgress?.DataOutProgress(this, $"HTTP {method} {this.WorkingUri}{attemptDescription}", SequenceProgressLogLevel.Brief);
-                    var methodResult = await HttpClientProvider.Client.SendAsync(request);
-                    //switch (method.ToUpper())
-                    //{
-                    //    case "GET":
-                    //        methodResult = await client.GetAsync(url);
-                    //        break;
+                return await HttpClientProvider.Client.SendAsync(request);
 
-                    //    case "PUT":
-                    //        /*UNTESTED*/
-                    //        methodResult = await client.PutAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                    //        break;
-
-                    //    case "POST":
-                    //        /*UNTESTED*/
-                    //        methodResult = await client.PostAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                    //        break;
-
-                    //    case "PATCH":
-                    //        /*UNTESTED*/
-                    //        methodResult = await client.PatchAsync(url, new StringContent(workingBody, Encoding.UTF8, mediaType));
-                    //        break;
-
-                    //    default:
-                    //        throw new InvalidOperationException($"Unknown {nameof(method)}: '{method}'");
-                    //}
-                    return methodResult;
-                });
-
-                return await ret;
             }
             catch (Exception e)
             {

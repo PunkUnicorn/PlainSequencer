@@ -1,4 +1,5 @@
-﻿using PlainSequencer.SequenceItemActions;
+﻿using Newtonsoft.Json;
+using PlainSequencer.SequenceItemActions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,9 +18,9 @@ namespace PlainSequencer.Logging
             public string ArrowNotation { get; set; } = "->";
             public string To { get; set; }
             public string Description { get; set; }
+            public int JsonBytes { get; set; }
         }
 
-        private List<string> notation = new List<string>();
         private Dictionary<int, SequenceArrow> sequenceArrows = new Dictionary<int, SequenceArrow>();
 
         public void Fail(SequenceItemAbstract item, string message)
@@ -74,7 +75,8 @@ namespace PlainSequencer.Logging
             {
                 From = CleanName(item.Parent?.Name),
                 To = CleanName(item.Name),
-                Description = CleanModel(item.Model?.ToString())
+                Description = CleanModel(item.Model),
+                JsonBytes = JsonConvert.SerializeObject(item.Model).Length
             };
 
             sequenceArrows.Add(item.PeerUniqueFullName.GetHashCode(), sa);
@@ -84,9 +86,20 @@ namespace PlainSequencer.Logging
 
         }
 
-        private static string CleanModel(string model) => model?.ToString()?.Replace("\n", "\\n")?.Replace("\r", "") ?? "...";
+        private static string CleanModel(object model)
+        {
+            Func<string, string> cleanFunc = (string s) => s.Replace("\n", "\\n")?.Replace("\r", "");
 
-        public void SequenceComplete(bool isSuccess, string model)
+            if (model is null)
+                return "null";
+
+            if (model is string)
+                return cleanFunc(model.ToString());
+
+            return cleanFunc(JsonConvert.SerializeObject(model, Formatting.Indented));
+        }
+
+        public void SequenceComplete(bool isSuccess, object model)
         {
             var allColumns = sequenceArrows.Values
                 .Select(item => item.From)
@@ -95,7 +108,10 @@ namespace PlainSequencer.Logging
             var noFrom = sequenceArrows.Values
                 .Select(item => item.To)
                 .Except(sequenceArrows.Values.Select(item => item.From))
-                .Single();
+                .SingleOrDefault();
+
+            if (noFrom is null)
+                return;
 
             var noLineFromKeys = sequenceArrows
                 .Where(item => noFrom.Contains(item.Value.To))
@@ -106,7 +122,8 @@ namespace PlainSequencer.Logging
             {
                 To = "Result",
                 From = noFrom,
-                Description = CleanModel(model)
+                Description = CleanModel(model),
+                JsonBytes = JsonConvert.SerializeObject(model).Length
             };
             newArrow.ArrowNotation = isSuccess ? newArrow.ArrowNotation : "-x";
             var guidHashcode = Guid.NewGuid().GetHashCode();
@@ -122,12 +139,13 @@ namespace PlainSequencer.Logging
 
             Func<string, bool> LevelOK = (s) => level == SequenceProgressLogLevel.Diagnostic || s.StartsWith($"<{level}>");
             Func<string, int, string> StripLevel = (s, i) => s.Substring(s.IndexOf('>')+1);
+            Func<string, int, SequenceProgressLogLevel, string> GetDesc = (s, b, l) => l == SequenceProgressLogLevel.Diagnostic ? s : $"//{b} bytes//";
 
             var sequenceNotation = new List<string>();
             foreach (var item in sequenceArrows.Select(preamble => preamble.Value))
             {
                 if (!string.IsNullOrWhiteSpace(item.From))
-                    sequenceNotation.Add($"{item.From}{item.ArrowNotation}{item.To}:{item.Description}");
+                    sequenceNotation.Add($"{item.From}{item.ArrowNotation}{item.To}:{GetDesc(item.Description, item.JsonBytes, level)}");
 
                 if (item.NotesFollowing.Where(LevelOK).Any())
                     sequenceNotation.Add($"note over {item.To}:{string.Join("\\n", item.NotesFollowing.Where(LevelOK).Select(StripLevel)).Replace("\n", "\\n").Replace("\r", "")}");

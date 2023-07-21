@@ -3,6 +3,7 @@ using PlainSequencer.Options;
 using PlainSequencer.Scriban;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -24,27 +25,36 @@ namespace PlainSequencer.SequenceItemActions
 
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken) 
 		{
-			return await FailableRun<object>(logProgress, this, async delegate {
-				++this.ActionExecuteCount;
-
-				this.logProgress?.Progress(this, $"Transforming model ...", SequenceProgressLogLevel.Brief);
-
+			return await FailableRun<object>(logProgress, this, async delegate 
+			{
 				if (this.sequenceItem.transform == null)
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.transform)} missing");
 
-				this.logProgress?.Progress(this, $"Transforming model {this.sequenceItem.transform.new_model_template}...", SequenceProgressLogLevel.Diagnostic);
+				var w = Policy.Handle<Exception>()
+					.WaitAndRetryAsync(this.SequenceItem.max_retries ?? 0, (i) => TimeSpan.FromSeconds(1));
 
-				var scribanModel = MakeScribanModel(); 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+                return await w.ExecuteAsync(async () =>
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+                {
+					++this.ActionExecuteCount;
 
-                var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
+					this.logProgress?.Progress(this, $"Transforming model...", SequenceProgressLogLevel.Brief);
 
-				LiteralResponse = scribanProcessedTemplate;
-				this.logProgress?.Progress(this, $"Transformed to:\n {scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
+					this.logProgress?.Progress(this, $"Transforming:\n{this.sequenceItem.transform.new_model_template}", SequenceProgressLogLevel.Diagnostic);
 
-				var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, scribanProcessedTemplate);
+					var scribanModel = MakeScribanModel();
 
-				ActionResult = responseModel;
-				return ActionResult;
+					var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
+
+					LiteralResponse = scribanProcessedTemplate;
+					this.logProgress?.Progress(this, $"Transformed to:\n{scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
+
+					var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, scribanProcessedTemplate);
+
+					ActionResult = responseModel;
+					return ActionResult;
+				});
 			});
 		}
 

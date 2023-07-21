@@ -147,12 +147,17 @@ namespace PlainSequencer.Script
 
 	public class Load
     {
-		/* Mutually exclusive block */
-		/* 𝘐𝘧 𝘮𝘰𝘳𝘦 𝘵𝘩𝘢𝘯 𝘰𝘯𝘦 𝘰𝘧 𝘵𝘩𝘦𝘴𝘦 𝘰𝘣𝘫𝘦𝘤𝘵𝘴 𝘪𝘴 𝘱𝘰𝘱𝘶𝘭𝘢𝘵𝘦𝘥 𝘵𝘩𝘦𝘯 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘰𝘧 𝘱𝘳𝘦𝘤𝘦𝘥𝘦𝘯𝘤𝘦 𝘪𝘴 𝘧𝘪𝘳𝘴𝘵 𝘧𝘳𝘰𝘮 𝘵𝘰𝘱 𝘵𝘰 𝘣𝘰𝘵𝘵𝘰𝘮 𝘰𝘧 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘥𝘦𝘧𝘪𝘯𝘦𝘥 𝘩𝘦𝘳𝘦 */
-		/// <summary>
-		/// Csv filename to load
-		/// </summary>
-		public string csv { get; set; }
+        /// <summary>
+        /// if null or blank then the default filekey is either "csv" or "json". Existing filekey entries are overwritten by newer ones.
+        /// </summary>
+        public string filekey;
+
+        /* Mutually exclusive block */
+        /* 𝘐𝘧 𝘮𝘰𝘳𝘦 𝘵𝘩𝘢𝘯 𝘰𝘯𝘦 𝘰𝘧 𝘵𝘩𝘦𝘴𝘦 𝘰𝘣𝘫𝘦𝘤𝘵𝘴 𝘪𝘴 𝘱𝘰𝘱𝘶𝘭𝘢𝘵𝘦𝘥 𝘵𝘩𝘦𝘯 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘰𝘧 𝘱𝘳𝘦𝘤𝘦𝘥𝘦𝘯𝘤𝘦 𝘪𝘴 𝘧𝘪𝘳𝘴𝘵 𝘧𝘳𝘰𝘮 𝘵𝘰𝘱 𝘵𝘰 𝘣𝘰𝘵𝘵𝘰𝘮 𝘰𝘧 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘥𝘦𝘧𝘪𝘯𝘦𝘥 𝘩𝘦𝘳𝘦 */
+        /// <summary>
+        /// Csv filename to load
+        /// </summary>
+        public string csv { get; set; }
 		/// <summary>
 		/// JSON file to load
 		/// </summary>

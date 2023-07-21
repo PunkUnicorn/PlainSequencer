@@ -29,6 +29,12 @@ namespace PactTests_Shared
                 .AsSelf()
                 .SingleInstance();
 
+            builder.RegisterType<ServiceGlobalData>().As<IServiceGlobalData>()
+                .SingleInstance();
+
+            builder.RegisterType<ServiceFileData>().As<IServiceFileData>()
+                .SingleInstance();
+
             builder.RegisterType<LogSequence>().As<ILogSequence>()
                 .SingleInstance();
 

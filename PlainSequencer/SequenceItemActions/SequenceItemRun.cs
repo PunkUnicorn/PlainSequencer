@@ -4,6 +4,7 @@ using PlainSequencer.Options;
 using PlainSequencer.Scriban;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -30,18 +31,15 @@ namespace PlainSequencer.SequenceItemActions
 			return new string[] { };
 		}
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
-			return await FailableRun<object>(logProgress, this, async delegate {
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-				++this.ActionExecuteCount;
+			return await FailableRun<object>(logProgress, this, async delegate 
+			{
+				var w = Policy.Handle<Exception>()
+					.WaitAndRetryAsync(this.SequenceItem.max_retries ?? 0, (i) => TimeSpan.FromSeconds(1));
 
 				if (this.sequenceItem.run == null)
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.run)} missing");
-
-
-				this.logProgress?.Progress(this, $"Running {this.sequenceItem.run.exec}...", SequenceProgressLogLevel.Brief);
 
 				var scribanModel = MakeScribanModel();
 
@@ -49,21 +47,28 @@ namespace PlainSequencer.SequenceItemActions
 				var workingExec = ScribanUtil.ScribanParse(this.sequenceItem?.run?.exec ?? "", scribanModel);
 				var workingArgs = ScribanUtil.ScribanParse(this.sequenceItem?.run?.args ?? "", scribanModel);
 
-				this.logProgress?.Progress(this, $" running exec '{workingExec}', with args '{workingArgs}'...", SequenceProgressLogLevel.Diagnostic);
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+				return await w.ExecuteAsync(async () =>
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+				{
+					++this.ActionExecuteCount;
 
-				var itsStandardInput = (model != null)
-					? JsonConvert.SerializeObject(model)
-					: "";
+					this.logProgress?.Progress(this, $"Running exec '{workingExec}', with args '{workingArgs}'...", SequenceProgressLogLevel.Brief);
 
-				var execReturn = ProcessExecute(this.sequenceItem.run, workingExec, workingArgs, itsStandardInput);
-				var responseContentLength = execReturn?.Length ?? 0;
-				var responseContent = execReturn;
-				LiteralResponse = execReturn;
+					var itsStandardInput = (model != null)
+						? JsonConvert.SerializeObject(model)
+						: "";
 
-				var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, execReturn);
-				ActionResult = responseModel;
+					var execReturn = ProcessExecute(this.sequenceItem.run, workingExec, workingArgs, itsStandardInput);
+					var responseContentLength = execReturn?.Length ?? 0;
+					var responseContent = execReturn;
+					LiteralResponse = execReturn;
 
-				return ActionResult;
+					var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, execReturn);
+					ActionResult = responseModel;
+
+					return ActionResult;
+				});
 			});
 		}
 

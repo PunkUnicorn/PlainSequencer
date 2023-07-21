@@ -232,7 +232,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "one-of-two",
-                        //breadcrumb = "{{sequence_item.send.url}}",
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -244,7 +243,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "two-of-two",
-                        //breadcrumb = "{{sequence_item.send.url}} - {{model.Id}}",
                         is_model_array = true,
                         http = new Http
                         {
@@ -270,36 +268,17 @@ sequence_items:
 
                 /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                Assert.True(result);
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
-
                 var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
                 mrOutput.WriteLine(sequenceNotation);
+
+                Assert.True(result);
+                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
             }            
         }
 
         [Fact]
         public void ThreeSequences_ModelTransform()
         {
-
-            /* prototype sequence diagram notation for test
-             title This is a title
-
-Different header box styles for each action type?
-
-
-note over one of three get complex object:HTTP Action:\nGET json complex object\nhttps://localhost
-one of three get complex object->two-of-three-transform-model:Complex object:\nId = "00000001",\nNestedArray = new [] { "Item1", "Item2", "Item3" } 
-note over two-of-three-transform-model: Transform Action:\nExtract 'NestedArray'\nfrom complex object
-two-of-three-transform-model->three-of-three-get-detail:Item1
-note over three-of-three-get-detail:HTTP\nGet additional data for Item1
-two-of-three-transform-model->three-of-three-get-detail:Item2
-note over three-of-three-get-detail:HTTP\nGet additional data for Item2
-two-of-three-transform-model->three-of-three-get-detail:Item3
-note over three-of-three-get-detail:HTTP\nGet additional data for Item3
-
-             
-             */
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
             const string expectedMoreDetailForItem1 = nameof(expectedMoreDetailForItem1);
@@ -356,7 +335,6 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                     new SequenceItem
                     {
                         name = "one-of-three-get-complex-object",
-                        //breadcrumb = "{{sequence_item.send.url}}",
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -370,7 +348,14 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                         name = "two-of-three-transform-model",
                         transform = new Transform
                         {
-                            new_model_template = "[ {{- for item in model.NestedArray -}} \"{{item}}\" {{- if !for.last -}} , {{- end}}{{end -}} ]"
+                            //new_model_template = "[ {{- for item in model.NestedArray -}} \"{{item}}\" {{- if !for.last -}} , {{- end}}{{end -}} ]"
+                            new_model_template = @"{{
+                                a=[]
+                                for item in model.NestedArray
+                                    a = a | array.add ''+item
+                                end -}}
+
+                            {{a}}"
                         }
                     },
                     /* Third, fan out to a call per nested array item */
@@ -389,25 +374,24 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
 
-                /* 𝓐𝓬𝓽 */
+            Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
+            var consumer = scope.Resolve<IApplication>();
 
-                var result = consumer.RunAsync(null).Result;
+            /* 𝓐𝓬𝓽 */
+
+            var result = consumer.RunAsync(null).Result;
 
 
-                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                Assert.True(result);
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+            mrOutput.WriteLine(sequenceNotation);
 
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
-                mrOutput.WriteLine(sequenceNotation);
-            }            
+            Assert.True(result);
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
         }
 
         [Fact]
@@ -520,8 +504,8 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
             const string expectedMoreDetailString = nameof(expectedMoreDetailString);
 
             ConsumeTestYamlPact.MockProviderService
-                .Given("There is an active endpoint that provides a list of ids")
-                .UponReceiving("A GET request to retrieve the list")
+                .Given("There is an active endpoint that provides a complex object that contains an id")
+                .UponReceiving("A GET request to retrieve the object")
                 .With(new ProviderServiceRequest
                 {
                     Method = HttpVerb.Get,
@@ -571,7 +555,6 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                     new SequenceItem
                     {
                         name = "two-of-three-check-at-end-fails",
-                        //is_model_array = true,
                         http = new Http
                         {
                             header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
@@ -632,6 +615,145 @@ note over three-of-three-get-detail:HTTP\nGet additional data for Item3
                     sequenceNotation.Should().EndWith(expectedLastResultLine);
                 else
                     sequenceNotation.Should().NotEndWith(expectedLastResultLine);
+            }
+        }
+
+        [Fact]
+        public void FourSequences_Get_Load_Transform_Check()
+        {
+            /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
+
+            const string expectedMoreDetailString = nameof(expectedMoreDetailString);
+
+            ConsumeTestYamlPact.MockProviderService
+                .Given("There is an active endpoint that provides a list of ids")
+                .UponReceiving("A GET request to retrieve the list")
+                .With(new ProviderServiceRequest
+                {
+                    Method = HttpVerb.Get,
+                    Path = "/first",
+                    Headers = new Dictionary<string, object> { { "Accept", "application/json" } },
+                })
+                .WillRespondWith(new ProviderServiceResponse
+                {
+                    Status = 200,
+                    Headers = new Dictionary<string, object> { { "Content-Type", "application/json; charset=utf-8" } },
+                    Body = new[] { new { Id = "00000001" }, new { Id = "00000002" }, new { Id = "00000003" } }
+                });
+
+            using var t = new TempFile();
+            File.WriteAllText(t.Filename, "colA,colB,colC\nrow1a,row1b,row1c\nrow2a,row2b,row2c");
+            var testYamlSequence = new SequenceScript
+            {
+                sequence_items = new List<SequenceItem> {
+                    /* First - http get */
+                    new SequenceItem
+                    {
+                        name = "one-of-four-http-get",
+                        http = new Http
+                        {
+                            header = new NamedStringList { new KeyValuePair<string, string>("Accept", "application/json" ) },
+                            method = "GET",
+                            url = $"http://localhost:{Port}/first"
+                        }
+                    },
+                    /* Second - csv */
+                    new SequenceItem
+                    {
+                        name = "two-of-four-load-csv",
+                        is_model_array = false,
+                        load = new Load { csv = t.Filename }
+                    },
+                    /* Third - transform */
+                    new SequenceItem
+                    {
+                        name = "three-of-four-transformers",
+                        transform = new Transform
+                        {
+                            new_model_template = @"{{
+                                newArray = []
+                                for modelItem in model                                    
+                                    for csvRow in csv
+                                        newStr = [ modelItem.Id, csvRow.colB ] | array.join '_'
+                                        newArray = newArray | array.add newStr
+                                    end
+                                end -}}
+
+                                {{newArray}}",
+                        }
+                    },
+                    /* Fourth - check */
+                    new SequenceItem
+                    {
+                        name = "four-of-four-check",
+                        check = new Check
+                        {
+                            pass_template = @"{{
+                                expectedArray = ['00000001_row1b',
+                                    '00000001_row2b',
+                                    '00000002_row1b',
+                                    '00000002_row2b',
+                                    '00000003_row1b',
+                                    '00000003_row2b']
+
+                                if model.size != expectedArray.size -}}
+                                    false {{-
+                                    ret
+                                end
+
+                                for actualItem in model
+                                    if actualItem != array.cycle expectedArray -}}
+                                        false {{- 
+                                        ret
+                                    end
+                                end-}}
+
+                                true",
+
+                            fail_info_template = 
+                                @"Expected model:\n{{model}}\nto match:\n{{['00000001_row1b',
+                                    '00000001_row2b',
+                                    '00000002_row1b',
+                                    '00000002_row2b',
+                                    '00000003_row1b',
+                                    '00000003_row2b']}}
+
+                                model size: {{ model.size -}}"
+                        }
+                    }
+                }
+            };
+
+            var testOptions = new CommandLineOptions { Direct = testYamlSequence };
+            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
+            using (var scope = container?.BeginLifetimeScope())
+            {
+                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
+                var consumer = scope.Resolve<IApplication>();
+
+
+                /* 𝓐𝓬𝓽 */
+
+                var result = consumer.RunAsync(null).Result;
+
+
+                /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
+
+                var title = $"{MethodBase.GetCurrentMethod().Name}";
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);//, PlainSequencer.SequenceItemActions.SequenceProgressLogLevel.Brief);
+                mrOutput.WriteLine(sequenceNotation);
+
+                
+                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+
+                result.Should().BeTrue();
+
+                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+
+                var output = container.Resolve<ConsoleOutputterTest>();
+                JsonConvert.DeserializeObject<string[]>(output.Output)
+                    .Should()
+                    .ContainInOrder(new string[] { "00000001_row1b", "00000001_row2b", "00000002_row1b", "00000002_row2b", "00000003_row1b", "00000003_row2b" });
             }
         }
     }

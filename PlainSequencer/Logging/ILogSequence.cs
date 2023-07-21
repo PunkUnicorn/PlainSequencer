@@ -12,7 +12,7 @@ namespace PlainSequencer.Logging
         void Fail(SequenceItemAbstract item, string message);
         void Fail(SequenceItemAbstract item, Exception message);
         void FinishedItem(SequenceItemAbstract sequenceItemAbstract);
-        void SequenceComplete(bool isSuccess, string modelStr);
+        void SequenceComplete(bool isSuccess, object model);
         string GetSequenceDiagramNotation(string title, SequenceProgressLogLevel level = SequenceProgressLogLevel.Diagnostic);
     }
 }

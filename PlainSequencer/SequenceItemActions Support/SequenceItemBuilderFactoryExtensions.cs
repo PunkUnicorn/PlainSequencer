@@ -13,8 +13,11 @@ namespace PlainSequencer.SequenceItemSupport
                     .WithAncestory(parent)
                     .WithNextSequenceItemsAs(nextItems);
 
+            if (thisItem.is_model_array && model as IEnumerable<object> is null)
+                model = new[] { model };
+
             if (thisItem.is_model_array)
-                return FetchComposite(parent, model, builder);
+                return FetchComposite(parent, model as IEnumerable<object>, builder);
 
             var actionItem = builder
                .WithThisResponseModel(model)
@@ -29,7 +32,9 @@ namespace PlainSequencer.SequenceItemSupport
             var models = (IEnumerable<object>)model;
             var retval = CompositeSequenceItemAction.FanOutBuildFrom(builder, models);
             
-            parent?.Children?.AddRange(retval.Children);
+            if (retval is not null)
+                parent?.Children?.AddRange(retval.Children);
+
             return retval;
         }
     }

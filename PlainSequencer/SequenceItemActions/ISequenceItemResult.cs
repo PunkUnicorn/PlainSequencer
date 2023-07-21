@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace PlainSequencer.SequenceItemActions
 {
@@ -16,6 +17,10 @@ namespace PlainSequencer.SequenceItemActions
         string LiteralResponse { get; }
 
         object ActionResult { get; }
+
+        Dictionary<string, object> NewVariables { get; }
+
+        Dictionary<string, object> NewFileData { get; }
 
         void NullResult();
 

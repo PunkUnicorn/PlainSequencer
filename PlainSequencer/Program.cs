@@ -61,6 +61,12 @@ namespace PlainSequencer
                 builder.RegisterType<ConsoleOutputter>().As<IConsoleOutputter>()
                     .SingleInstance();
 
+                builder.RegisterType<ServiceGlobalData>().As<IServiceGlobalData>()
+                    .SingleInstance();
+
+                builder.RegisterType<ServiceFileData>().As<IServiceFileData>()
+                    .SingleInstance();
+
                 builder.RegisterType<LogSequence>().As<ILogSequence>()
                     .SingleInstance();
 

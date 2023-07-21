@@ -3,6 +3,7 @@ using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
+using Polly;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -18,12 +19,10 @@ namespace PlainSequencer.SequenceItemActions
         {
             SequenceItem = check;
             Checker = checker;
-            //Model = scribanModel;
         }
 
         public SequenceItem SequenceItem { get; }
         public SequenceItemCheck Checker { get; }
-        //public object Model { get; }
     }
 
     public class SequenceItemCheck : SequenceItemAbstract, ISequenceItemAction, ISequenceItemActionRun, ISequenceItemActionHierarchy
@@ -36,31 +35,39 @@ namespace PlainSequencer.SequenceItemActions
             return new string[] { };
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {
             return await FailableRun<object>(logProgress, this, async delegate
             {
-                // Do retries within a failable run so only the final fail is registered, but increment ActionExecuteCount with each retry
-
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
-                ++this.ActionExecuteCount;
-
                 if (this.sequenceItem.check == null)
                     throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.check)} missing");
 
-                var scribanModel = MakeScribanModel();
+                // Do retries within a failable run so only the final fail is registered, but increment ActionExecuteCount with each retry
+                var w = Policy.Handle<Exception>()
+                    .WaitAndRetryAsync(this.SequenceItem.max_retries ?? 0, (i) => TimeSpan.FromSeconds(1));
 
-                var result = this.sequenceItem.check.IsPass(scribanModel);
-                LiteralResponse = result.ToString();
-                ActionResult = this.model;
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+                return await w.ExecuteAsync(async () =>
+                {
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+                    ++this.ActionExecuteCount;
 
-                if (result)
-                    this.logProgress?.Progress(this, $"Check OK: '{sequenceItem.name}'", SequenceProgressLogLevel.Brief);
-                else
-                    Fail( new SequenceItemCheckException(this.sequenceItem, this, scribanModel));
+                    var scribanModel = MakeScribanModel();
 
-                return ActionResult;
+                    var result = this.sequenceItem.check.IsPass(scribanModel);
+                    LiteralResponse = result.ToString();
+                    ActionResult = this.model;
+
+                    if (result)
+                    {
+                        this.logProgress?.Progress(this, $"Passed.", SequenceProgressLogLevel.Brief);
+                        this.logProgress?.Progress(this, $"With template:\n{sequenceItem.check.pass_template}\nWith model:\n{JsonConvert.SerializeObject(this.model, Formatting.Indented)}", SequenceProgressLogLevel.Diagnostic);
+                    }
+                    else
+                        Fail(new SequenceItemCheckException(this.sequenceItem, this, scribanModel));
+
+                    return ActionResult;
+                });
             });
         }
     }
