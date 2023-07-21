@@ -18,11 +18,17 @@ That one has full diagnostics turned on, here's the same journey but without dia
 
 ![](PactTests_ClosedTests/FourSequences_Get_Load_Transform_Check.png)
 
-Mostly though, I use this tool to chain two or three http requests together, sometimes starting with a csv file. Here's the first journey, but shown when things go wrong:
+Mostly though, I use this tool to chain two or three http requests together, sometimes starting with a csv file. But csv files can be loaded on route to be transformed with an http's response.
+
+The first journey in this readme was a success path, but tere's the first journey again but shown when things go wrong. This will exit with an error code on the console but still output what it can to stdout:
 
 ![](PactTests_ClosedTests/FansOutThree_ExpectedFailForOne%20outputDespiteErrors=True.png)
 
-Or alternatively, the same error path, but with error console output turned off:
+The same but with error console output turned off. It will still exit with an error code but not output anything to stdout:
 
 ![](PactTests_ClosedTests/FansOutThree_ExpectedFailForOne%20outputDespiteErrors=False.png)
+
+HTTP responses can be saved to file for later post-mortum.
+
+
 
