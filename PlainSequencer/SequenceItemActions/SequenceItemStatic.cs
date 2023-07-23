@@ -109,7 +109,6 @@ namespace PlainSequencer.SequenceItemActions
                 logProgress.FinishedItem((SequenceItemAbstract)siAct);
 
                 var siStract = (SequenceItemAbstract)siAct;
-                var isAddVarsEtc = !sir.IsFail;
                 if (sir.IsFail)
                 {
                     if (sir.Exception != null)
@@ -121,23 +120,6 @@ namespace PlainSequencer.SequenceItemActions
                         sir.NullResult();
                     else if (sir.ActionResult is null)
                         sir.BlankResult();
-
-                    isAddVarsEtc = siAct.SequenceItem.is_continue_on_failure;
-                }
-
-                if (isAddVarsEtc)
-                {
-                    foreach (var newVar in sir.NewVariables)
-                    {
-                        siStract.GlobalDataService.UpsertData(newVar.Key, newVar.Value);
-                        logProgress?.Progress(siStract, $"Variable added:'{newVar.Key}'={newVar.Value}", SequenceProgressLogLevel.Diagnostic);
-                    }
-
-                    foreach (var newFile in sir.NewFileData)
-                    {
-                        siStract.GlobalFileService.UpsertFileData(newFile.Key, newFile.Value);
-                        logProgress?.Progress(siStract, $"File added as variable:'{newFile.Key}'", SequenceProgressLogLevel.Diagnostic);
-                    }
                 }
             }
         }

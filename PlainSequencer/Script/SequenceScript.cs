@@ -7,6 +7,8 @@ namespace PlainSequencer.Script
 {
     public class SequenceScript
 	{
+		public string name;
+
 		/// <summary>
 		/// False to return nothing on a failure, True to get all available results despite failures
 		/// </summary>
@@ -14,6 +16,16 @@ namespace PlainSequencer.Script
 
         //public KeyVlueList header { get; set; }
         public int? client_timeout_seconds { get; set; }
+		public class FailHole
+		{
+			public bool disable_stderr { get; set; }
+			public string stderr_template { get; set; } = @"expandable+ {{sequence_item_node.Name}} {{if sequence_item.is_model_array;}}FanOut#{{sequence_item_node.PeerIndex; end}}
+{{sequence_item_run.SequenceDiagramNotation}}
+end";
+			public bool fail_to_sequence_items { get; set; }
+			public List<SequenceItem> sequence_for_failures { get; set; }
+        }
+		public FailHole fail_hole { get; set; }
 		public string run_id { get; set; }
 		public List<SequenceItem> sequence_items { get; set; }
 	}
@@ -129,9 +141,9 @@ namespace PlainSequencer.Script
     public class Save
 	{
 		public string folder { get; set; }
-		public string model_before_filename { get; set; }
-		public string model_after_filename { get; set; }
-		public string breadcrumb { get; set; } = "{{sequence_item.save.response_filename}}";
+		public string filename { get; set; }
+		public string content { get; set; }
+		public string breadcrumb { get; set; } = "{{sequence_item.save.filename}}";
 	}
 
 	public class Run
@@ -142,15 +154,14 @@ namespace PlainSequencer.Script
 		public string breadcrumb { get; set; } = "{{sequence_item.run.exec}}";
 
 		public bool is_ignore_exitcode { get; set; }
-		public Save save { get; set; }
 	}
 
 	public class Load
     {
-        /// <summary>
-        /// if null or blank then the default filekey is either "csv" or "json". Existing filekey entries are overwritten by newer ones.
-        /// </summary>
-        public string filekey;
+		/// <summary>
+		/// if null or blank then the default variable_name is either "csv" or "json". Existing variable with the same name are overwritten by newer ones.
+		/// </summary>
+		public string variable_name;
 
         /* Mutually exclusive block */
         /* 𝘐𝘧 𝘮𝘰𝘳𝘦 𝘵𝘩𝘢𝘯 𝘰𝘯𝘦 𝘰𝘧 𝘵𝘩𝘦𝘴𝘦 𝘰𝘣𝘫𝘦𝘤𝘵𝘴 𝘪𝘴 𝘱𝘰𝘱𝘶𝘭𝘢𝘵𝘦𝘥 𝘵𝘩𝘦𝘯 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘰𝘧 𝘱𝘳𝘦𝘤𝘦𝘥𝘦𝘯𝘤𝘦 𝘪𝘴 𝘧𝘪𝘳𝘴𝘵 𝘧𝘳𝘰𝘮 𝘵𝘰𝘱 𝘵𝘰 𝘣𝘰𝘵𝘵𝘰𝘮 𝘰𝘧 𝘵𝘩𝘦 𝘰𝘳𝘥𝘦𝘳 𝘥𝘦𝘧𝘪𝘯𝘦𝘥 𝘩𝘦𝘳𝘦 */
@@ -190,16 +201,4 @@ namespace PlainSequencer.Script
 		public HttpSave save { get; set; }
 
 	}
-
-	//public class NextSequenceItemOptions
-	//{
-	//	/// <summary>
-	//	/// Set this to the max number of items to pass to the next command
-	//	/// </summary>
-	//	public int? stop_after_nth_item { get; set; }
-	//	public bool abort_on_exception { get; set; }
-	//	public string command { get; set; }
-	//	public dynamic replace_response_with { get; set; }
-	//	public int? parallel_batch_size { get; set; }
-	//}
 }

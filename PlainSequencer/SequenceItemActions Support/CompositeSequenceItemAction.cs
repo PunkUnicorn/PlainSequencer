@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static PlainSequencer.SequenceItemActions.ISequenceItemActionRun;
 
 namespace PlainSequencer.SequenceItemSupport
 {
@@ -23,7 +24,7 @@ namespace PlainSequencer.SequenceItemSupport
         {
             get => Children
                 ?.Where(child => child != null)
-                ?.Cast<ISequenceItemActionHierarchy>()
+                ?.Cast<ISequenceItemActionRun>()
                 ?.Min(child => child.Started) ?? DateTime.MinValue;
             set => throw new NotImplementedException();
         }
@@ -32,7 +33,7 @@ namespace PlainSequencer.SequenceItemSupport
         {
             get => Children
                 ?.Where(child => child != null)
-                ?.Cast<ISequenceItemActionHierarchy>()
+                ?.Cast<ISequenceItemActionRun>()
                 ?.Max(child => child.Finished) ?? DateTime.MinValue;
             set => throw new NotImplementedException();
         }
@@ -43,13 +44,15 @@ namespace PlainSequencer.SequenceItemSupport
 
         string ISequenceItemActionHierarchy.FullAncestryName => throw new NotImplementedException();
 
-        public string PeerUniqueFullName => throw new NotImplementedException();
+        public string FullAncestryWithPeerName => throw new NotImplementedException();
 
-        public string PeerUniqueWithRetryIndexName => throw new NotImplementedException();
+        public string FullAncestryWithPeerWithRetryName => throw new NotImplementedException();
 
         public int ActionExecuteCount { get; set; }
 
         public object Model { get; set; }
+
+        public bool IsItemSuccess => throw new InvalidOperationException();
 
         private bool isFail;
         public bool IsFail =>
@@ -104,8 +107,6 @@ namespace PlainSequencer.SequenceItemSupport
         }
         public Dictionary<string, object> NewVariables { get => throw new NotImplementedException(); }
 
-        public Dictionary<string, object> NewFileData { get => throw new NotImplementedException(); }
-
         public void NullResult() => throw new NotImplementedException();
         public void BlankResult() => throw new NotImplementedException();
 
@@ -145,10 +146,10 @@ namespace PlainSequencer.SequenceItemSupport
             };
         }
 
-        public async Task<object> ActionAsync(CancellationToken cancelToken)
+        public async Task<object> ActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken)
         {
             foreach (var run in Children.Cast<ISequenceItemActionRun>())
-                await run.ActionAsync(cancelToken);
+                await run.ActionAsync(addToFailHoleAsync, cancelToken);
 
             // return the results array in the same order as the children nodes
             var allResults = Children
@@ -180,11 +181,17 @@ namespace PlainSequencer.SequenceItemSupport
             return this;
         }
 
-        public string[] GetParents() => Children.FirstOrDefault()?.GetParents();
+        public ISequenceItemActionHierarchy[] GetParents() => throw new NotImplementedException();
+
+        public string[] GetParentsNames() => throw new NotImplementedException();//Children.FirstOrDefault()?.GetParents();
 
         public string FullAncestryName() => Children.FirstOrDefault()?.FullAncestryName;
 
         public int PeerIndex => throw new NotImplementedException();
+
+        public string SequenceDiagramNotation => throw new NotImplementedException();
+
+        public string SequenceDiagramKey => throw new NotImplementedException();
 
         public string FailMessage
         {

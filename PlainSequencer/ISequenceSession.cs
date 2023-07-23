@@ -1,6 +1,8 @@
 ﻿using PlainSequencer.Script;
 using PlainSequencer.SequenceItemActions;
-using PlainSequencer.Stuff;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PlainSequencer
 {
@@ -10,5 +12,7 @@ namespace PlainSequencer
         ISequenceItemActionHierarchy Top { get; }
         int UniqueNo { get; }
         SequenceScript Script { get; }
+
+        //Task AddToFailHoleAsync(SequenceItemAbstract sequenceItemAbstract, IDictionary<string, object> scribanModel, CancellationToken cancellationToken);
     }
 }

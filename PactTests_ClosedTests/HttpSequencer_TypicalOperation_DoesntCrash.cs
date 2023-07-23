@@ -12,6 +12,7 @@ using PlainSequencer.Stuff;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Xunit;
 using Xunit.Abstractions;
@@ -55,7 +56,6 @@ namespace PactTests_ClosedTests
             string yamlContents = $@"---
 sequence_items:
   - name: load-yaml-expect-success
-    breadcrumb: '{{{{run_id}}}} - {{{{sequence_item.command}}}} - {{{{sequence_item.send.url}}}}'
     http:
       method: GET
       url: http://localhost:{testPort}";
@@ -86,34 +86,29 @@ sequence_items:
 
                 var testOptions = new CommandLineOptions { YamlFile = t.Filename };
 
-                using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-                using (var scope = container?.BeginLifetimeScope())
-                {
-                    Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                    var consumer = scope.Resolve<IApplication>();
+                using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+                using var scope = container?.BeginLifetimeScope();
 
-                    /* 𝓐𝓬𝓽 */
-                    var result = consumer.RunAsync(null).Result;
+                scope.Should().NotBeNull("Test malfunction: can't create DI scope");
 
-                    /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
-                    Assert.True(result);
-                    consumeTestYamlPact.MockProviderService.VerifyInteractions();
+                var consumer = scope.Resolve<IApplication>();
 
-                    var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
-                    mrOutput.WriteLine(sequenceNotation);
-                }
+                /* 𝓐𝓬𝓽 */
+                var result = consumer.RunAsync(null).Result;
+
+                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+                result.Should().BeTrue();
+                consumeTestYamlPact.MockProviderService.VerifyInteractions();
+
+                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+                mrOutput.WriteLine(sequenceNotation);
             }
         }
 
         [Fact]
         public void OneSequence()
         {
-            /*     _                                                 
-                  / \     _ __   _ __    __ _   _ __     __ _    ___ 
-                 / _ \   | '__| | '__|  / _` | | '_ \   / _` |  / _ \
-                / ___ \  | |    | |    | (_| | | | | | | (_| | |  __/
-               /_/   \_\ |_|    |_|     \__,_| |_| |_|  \__, |  \___|
-                                                        |___/           */
+            /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
 
             ConsumeTestYamlPact.MockProviderService
                 .Given("There is an active endpoint")
@@ -140,7 +135,6 @@ sequence_items:
                     new SequenceItem
                     {
                         name = "first-and-only",
-                        //breadcrumb = "{{run_id}} - {{sequence_item.command}} - {{sequence_item.send.url}}",
                         http = new Http
                         {
                             method = "GET",
@@ -151,36 +145,24 @@ sequence_items:
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
 
-                /*     _             _   
-                      / \      ___  | |_ 
-                     / _ \    / __| | __|
-                    / ___ \  | (__  | |_ 
-                   /_/   \_\  \___|  \__|   
-                                            */
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
+            var consumer = scope.Resolve<IApplication>();
 
-                var result = consumer.RunAsync(null).Result;
+            /* 𝓐𝓬𝓽 */
+
+            var result = consumer.RunAsync(null).Result;
 
 
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                /*     _                                _   
-                      / \     ___   ___    ___   _ __  | |_ 
-                     / _ \   / __| / __|  / _ \ | '__| | __|
-                    / ___ \  \__ \ \__ \ |  __/ | |    | |_ 
-                   /_/   \_\ |___/ |___/  \___| |_|     \__|    
-                                                             */
+            result.Should().BeTrue();
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                Assert.True(result);
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
-
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
-                mrOutput.WriteLine(sequenceNotation);
-            }
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+            mrOutput.WriteLine(sequenceNotation);
         }
 
         [Fact]
@@ -255,25 +237,24 @@ sequence_items:
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
 
-                /* 𝓐𝓬𝓽 */
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
+            var consumer = scope.Resolve<IApplication>();
 
-                var result = consumer.RunAsync(null).Result;
+            /* 𝓐𝓬𝓽 */
+
+            var result = consumer.RunAsync(null).Result;
 
 
-                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
-                mrOutput.WriteLine(sequenceNotation);
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+            mrOutput.WriteLine(sequenceNotation);
 
-                Assert.True(result);
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
-            }            
+            result.Should().BeTrue();
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
         }
 
         [Fact]
@@ -377,7 +358,7 @@ sequence_items:
             using var container = AutofacTestSession.ConfigureTestSession(testOptions);
             using var scope = container?.BeginLifetimeScope();
 
-            Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
             var consumer = scope.Resolve<IApplication>();
 
             /* 𝓐𝓬𝓽 */
@@ -390,7 +371,7 @@ sequence_items:
             var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
             mrOutput.WriteLine(sequenceNotation);
 
-            Assert.True(result);
+            result.Should().BeTrue();
             ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
         }
 
@@ -474,24 +455,23 @@ sequence_items:
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
 
-                /* 𝓐𝓬𝓽 */
-                var result = consumer.RunAsync(null).Result;
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
+            var consumer = scope.Resolve<IApplication>();
+
+            /* 𝓐𝓬𝓽 */
+            var result = consumer.RunAsync(null).Result;
 
 
-                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                Assert.True(result);
+            result.Should().BeTrue();
 
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
-                mrOutput.WriteLine(sequenceNotation);
-            }
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(MethodBase.GetCurrentMethod().Name);
+            mrOutput.WriteLine(sequenceNotation);
         }
 
         [Theory]
@@ -576,54 +556,59 @@ sequence_items:
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
+
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
+            var consumer = scope.Resolve<IApplication>();
 
 
-                /* 𝓐𝓬𝓽 */
+            /* 𝓐𝓬𝓽 */
 
-                var result = consumer.RunAsync(null).Result;
-
-
-                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
-
-                Assert.False(result);
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
-
-                var output = container.Resolve<ConsoleOutputterTest>();
-                var actual = output.Output.Length == 0
-                    ? output.Output
-                    : JsonConvert.SerializeObject(JsonConvert.DeserializeObject(output.Output), Formatting.None);
-
-                actual.Should().Be(expectedOutput);
+            var result = consumer.RunAsync(null).Result;
 
 
-                /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
-                mrOutput.WriteLine(sequenceNotation);
+            result.Should().BeFalse();
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
 
-                sequenceNotation.Should().StartWith($"title {title}");
-                sequenceNotation.Should().Contain("two of three check at end fails-xthree of three check at end fails:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}");
+            var output = container.Resolve<ConsoleOutputterTest>();
+            var actual = output.Output.Length == 0
+                ? output.Output
+                : JsonConvert.SerializeObject(JsonConvert.DeserializeObject(output.Output), Formatting.None);
 
-                var expectedLastResultLine = "three of three check at end fails-xResult:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}";
-                if (outputDespiteErrors)
-                    sequenceNotation.Should().EndWith(expectedLastResultLine);
-                else
-                    sequenceNotation.Should().NotEndWith(expectedLastResultLine);
-            }
+            actual.Should().Be(expectedOutput);
+
+
+            /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
+
+            var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);
+            mrOutput.WriteLine(sequenceNotation);
+
+            sequenceNotation.Should().StartWith($"title {title}");
+            const string expectedSequenceNotation = "two of three check at end fails-xthree of three check at end fails:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}";
+            sequenceNotation.Should().Contain(expectedSequenceNotation);
+
+            var expectedLastResultLine = "three of three check at end fails-xResult:{\\n  \"detail\": \"expectedMoreDetailString\"\\n}";
+            if (outputDespiteErrors)
+                sequenceNotation.Should().EndWith(expectedLastResultLine);
+            else
+                sequenceNotation.Should().NotEndWith(expectedLastResultLine);
+
+            // stderr
+            mrOutput.WriteLine($"\nStderr:\n{output.Error}");
+
+            output.Error.Should().StartWith("expandable+");
+            output.Error.Should().Contain(expectedSequenceNotation);
+            output.Error.Should().EndWith($"end{Environment.NewLine}");
         }
 
         [Fact]
         public void FourSequences_Get_Load_Transform_Check()
         {
             /* 𝓐𝓻𝓻𝓪𝓷𝓰𝓮 */
-
-            const string expectedMoreDetailString = nameof(expectedMoreDetailString);
 
             ConsumeTestYamlPact.MockProviderService
                 .Given("There is an active endpoint that provides a list of ids")
@@ -725,36 +710,36 @@ sequence_items:
             };
 
             var testOptions = new CommandLineOptions { Direct = testYamlSequence };
-            using (var container = AutofacTestSession.ConfigureTestSession(testOptions))
-            using (var scope = container?.BeginLifetimeScope())
-            {
-                Assert.NotNull(scope); // "Test malfunction: can't create DI scope"
-                var consumer = scope.Resolve<IApplication>();
+            using var container = AutofacTestSession.ConfigureTestSession(testOptions);
+            using var scope = container?.BeginLifetimeScope();
+
+            scope.Should().NotBeNull("Test malfunction: can't create DI scope");
+            var consumer = scope.Resolve<IApplication>();
 
 
-                /* 𝓐𝓬𝓽 */
+            /* 𝓐𝓬𝓽 */
 
-                var result = consumer.RunAsync(null).Result;
+            var result = consumer.RunAsync(null).Result;
 
 
-                /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
+            /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
 
-                var title = $"{MethodBase.GetCurrentMethod().Name}";
-                var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);//, PlainSequencer.SequenceItemActions.SequenceProgressLogLevel.Brief);
-                mrOutput.WriteLine(sequenceNotation);
+            var output = container.Resolve<ConsoleOutputterTest>();
+            var title = $"{MethodBase.GetCurrentMethod().Name}";
+            var sequenceNotation = container.Resolve<ILogSequence>().GetSequenceDiagramNotation(title);//, PlainSequencer.SequenceItemActions.SequenceProgressLogLevel.Brief);
+            mrOutput.WriteLine(sequenceNotation);
 
-                
-                /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
+            /* 𝓐𝓼𝓼𝓮𝓻𝓽 */
 
-                result.Should().BeTrue();
+            result.Should().BeTrue();
 
-                ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+            output.Error.Should().BeEmpty();
 
-                var output = container.Resolve<ConsoleOutputterTest>();
-                JsonConvert.DeserializeObject<string[]>(output.Output)
-                    .Should()
-                    .ContainInOrder(new string[] { "00000001_row1b", "00000001_row2b", "00000002_row1b", "00000002_row2b", "00000003_row1b", "00000003_row2b" });
-            }
+            ConsumeTestYamlPact.MockProviderService.VerifyInteractions();
+
+            JsonConvert.DeserializeObject<string[]>(output.Output)
+                .Should()
+                .ContainInOrder(new string[] { "00000001_row1b", "00000001_row2b", "00000002_row1b", "00000002_row2b", "00000003_row1b", "00000003_row2b" });
         }
     }
 }

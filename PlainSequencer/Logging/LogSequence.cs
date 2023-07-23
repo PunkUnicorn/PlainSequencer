@@ -25,7 +25,7 @@ namespace PlainSequencer.Logging
 
         public void Fail(SequenceItemAbstract item, string message)
         {
-            var uniqueItemKey = item.PeerUniqueFullName.GetHashCode();
+            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].ArrowNotation = "-x";
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{SequenceProgressLogLevel.Brief}>Error: {message}");
 
@@ -34,7 +34,7 @@ namespace PlainSequencer.Logging
 
         public void Fail(SequenceItemAbstract item, Exception e)
         {
-            var uniqueItemKey = item.PeerUniqueFullName.GetHashCode();
+            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].ArrowNotation = "-x";
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{SequenceProgressLogLevel.Brief}>Error: {e.Message}");
 
@@ -43,7 +43,7 @@ namespace PlainSequencer.Logging
 
         public void Progress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.PeerUniqueFullName.GetHashCode();
+            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
@@ -51,7 +51,7 @@ namespace PlainSequencer.Logging
 
         public void DataOutProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.PeerUniqueFullName.GetHashCode();
+            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
@@ -59,7 +59,7 @@ namespace PlainSequencer.Logging
 
         public void DataInProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.PeerUniqueFullName.GetHashCode();
+            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
@@ -71,15 +71,16 @@ namespace PlainSequencer.Logging
 
         public void StartItem(SequenceItemAbstract item)
         {
+            Func<ISequenceItemActionHierarchy, ISequenceItemActionRun> castToIRun = (a) => (ISequenceItemActionRun)a;
             var sa = new SequenceArrow
             {
-                From = CleanName(item.Parent?.Name),
-                To = CleanName(item.Name),
+                From = CleanName(castToIRun(item.Parent)?.SequenceDiagramKey),
+                To = CleanName(castToIRun(item).SequenceDiagramKey),
                 Description = CleanModel(item.Model),
                 JsonBytes = JsonConvert.SerializeObject(item.Model).Length
             };
 
-            sequenceArrows.Add(item.PeerUniqueFullName.GetHashCode(), sa);
+            sequenceArrows.Add(item.FullAncestryWithPeerName.GetHashCode(), sa);
             
             if (item.SequenceItem.is_model_array)
                 sa.NotesFollowing.Add($"<{SequenceProgressLogLevel.Diagnostic}>//Fan out {item.PeerIndex}//");
@@ -132,7 +133,10 @@ namespace PlainSequencer.Logging
 
         public string GetSequenceDiagramNotation(string title, SequenceProgressLogLevel level = SequenceProgressLogLevel.Diagnostic)
         {
-            var retval = new StringBuilder($"title {title}\n");
+            var retval = new StringBuilder();
+
+            if (title is not null)
+                retval.AppendLine($"title {title}\n");
 
             var participantsOnly = sequenceArrows
                 .Where(item => string.IsNullOrWhiteSpace(item.Value.To) || string.IsNullOrWhiteSpace(item.Value.From));

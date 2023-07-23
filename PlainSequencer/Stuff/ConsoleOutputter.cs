@@ -9,5 +9,10 @@ namespace PlainSequencer.Stuff
         {
             Console.WriteLine(message);
         }
+
+        public void ErrorLine(string message)
+        {
+            Console.Error.WriteLine(message);
+        }
     }
 }

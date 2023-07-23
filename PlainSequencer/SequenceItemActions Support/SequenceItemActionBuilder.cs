@@ -33,7 +33,6 @@ namespace PlainSequencer.SequenceItemSupport
                 PeerIndex = peerIndex
             };
 
-
             return sequenceItemActionFactory.ResolveSequenceItemAction(sequenceItem, @params);
         }
 
@@ -85,9 +84,7 @@ namespace PlainSequencer.SequenceItemSupport
 
         public ISequenceItemActionBuilder WithThisResponseModel(object model)
         {
-            //var look2 = JsonConvert.SerializeObject(model, Formatting.Indented);
             this.model = model;
-            //var look1 = JsonConvert.SerializeObject(model, Formatting.Indented);
             return this;
         }
 

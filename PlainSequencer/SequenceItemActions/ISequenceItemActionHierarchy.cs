@@ -6,10 +6,6 @@ namespace PlainSequencer.SequenceItemActions
 {
     public interface ISequenceItemActionHierarchy
     {
-        DateTime Started { get; }
-
-        DateTime Finished { get; }
-
         string Name { get; }
 
         SequenceItem SequenceItem { get; }
@@ -20,14 +16,16 @@ namespace PlainSequencer.SequenceItemActions
 
         SequenceItem[] NextSequenceItems { get; }
 
-        string[] GetParents();
+        ISequenceItemActionHierarchy[] GetParents();
+
+        string[] GetParentsNames();
 
         int PeerIndex { get; }
 
         string FullAncestryName { get; }
 
-        string PeerUniqueFullName { get; }
+        string FullAncestryWithPeerName { get; }
 
-        string PeerUniqueWithRetryIndexName { get; }
+        string FullAncestryWithPeerWithRetryName { get; }
     }
 }

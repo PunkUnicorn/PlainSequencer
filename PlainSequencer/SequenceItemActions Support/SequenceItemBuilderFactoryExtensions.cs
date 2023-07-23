@@ -17,7 +17,7 @@ namespace PlainSequencer.SequenceItemSupport
                 model = new[] { model };
 
             if (thisItem.is_model_array)
-                return FetchComposite(parent, model as IEnumerable<object>, builder);
+                return FetchComposite(parent, (IEnumerable<object>)model, builder);
 
             var actionItem = builder
                .WithThisResponseModel(model)

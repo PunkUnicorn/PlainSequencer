@@ -22,14 +22,16 @@ namespace PlainSequencer.SequenceItemSupport
 
         public string Name => throw new NotImplementedException(nameof(Name));
 
-        public string PeerUniqueFullName => throw new NotImplementedException();
+        public string FullAncestryWithPeerName => throw new NotImplementedException();
 
-        public string PeerUniqueWithRetryIndexName => throw new NotImplementedException();
+        public string FullAncestryWithPeerWithRetryName => throw new NotImplementedException();
 
         string ISequenceItemActionHierarchy.FullAncestryName => throw new NotImplementedException();
 
         public string FullAncestryName() => throw new NotImplementedException();
 
-        public string[] GetParents() => throw new NotImplementedException();
+        public ISequenceItemActionHierarchy[] GetParents() => throw new NotImplementedException();
+
+        public string[] GetParentsNames() => throw new NotImplementedException();
     }
 }

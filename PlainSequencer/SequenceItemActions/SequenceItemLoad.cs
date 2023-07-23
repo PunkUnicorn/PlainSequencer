@@ -45,17 +45,17 @@ namespace PlainSequencer.SequenceItemActions
 
                     var scribanModel = MakeScribanModel();
 
-                    string defaultFileKey = null;
+                    string defaultVariableName = null;
                     string stringContent = null;
                     if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.csv))
                     {
                         stringContent = LoadCsv(scribanModel);
-                        defaultFileKey = "csv";
+                        defaultVariableName = "csv";
                     }
                     else if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.json))
                     {
                         stringContent = LoadJson(scribanModel);
-                        defaultFileKey = "json";
+                        defaultVariableName = "json";
                     }
                     else
                         throw new InvalidOperationException("Neither load sections (csv, json) are populated.");
@@ -65,7 +65,7 @@ namespace PlainSequencer.SequenceItemActions
                     dynamic passData = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);
 
                     ActionResult = this.model;
-                    NewFileData.Add(this.sequenceItem.load.filekey ?? defaultFileKey, passData);
+                    NewVariables.Add(this.sequenceItem.load.variable_name ?? defaultVariableName, passData);
 
                     return ActionResult;
                 });

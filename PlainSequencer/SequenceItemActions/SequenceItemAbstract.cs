@@ -1,5 +1,4 @@
-﻿using PlainSequencer.Autofac;
-using PlainSequencer.Logging;
+﻿using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
@@ -9,6 +8,7 @@ using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static PlainSequencer.SequenceItemActions.ISequenceItemActionRun;
 using static PlainSequencer.SequenceItemActions.SequenceItemStatic;
 
 namespace PlainSequencer.SequenceItemActions
@@ -36,14 +36,6 @@ namespace PlainSequencer.SequenceItemActions
 
         public Dictionary<string, object> NewVariables { get; } = new Dictionary<string, object>();
 
-        public Dictionary<string, object> NewFileData { get; } = new Dictionary<string, object>();
-
-        [AutofacInjected]
-        public IServiceGlobalData GlobalDataService { get; set; }
-
-        [AutofacInjected]
-        public IServiceFileData GlobalFileService { get; set; }
-
         public SequenceItemAbstract(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
         {
             this.logProgress = logProgress;
@@ -67,19 +59,32 @@ namespace PlainSequencer.SequenceItemActions
             retval.command_args = this.commandLineOptions;
             retval.model = this.model;
             retval.sequence_item = this.sequenceItem;
-            retval.peerIndex = this.peerIndex;
+            retval.sequence_item_run = (ISequenceItemActionRun)this;
+            retval.sequence_item_result = (ISequenceItemResult)this;
+            retval.sequence_item_node = (ISequenceItemActionHierarchy)this;
+            retval.peer_index = this.peerIndex;
             retval.prev_sequence_item = this?.Parent?.SequenceItem;
+            retval.prev_sequence_item_run = (ISequenceItemActionRun)this?.Parent;
+            retval.prev_sequence_item_result = (ISequenceItemResult)this?.Parent;
             retval.next_sequence_items = this.NextSequenceItems;
             retval.unique_no = session.UniqueNo;
             var asDict = (IDictionary<string, object>)retval;
 
-            // Add global data
-            foreach (var var in GlobalDataService.GetData())
-                asDict.Add(var.Key, var.Value);
+            var paintersVariableLayers = new List<ISequenceItemActionHierarchy>() { this };
+            for (ISequenceItemActionHierarchy c = this; c.Parent != null; c = c.Parent)
+                paintersVariableLayers.Add(c);
+            if (this != session.Top && session.Top is not null)
+                paintersVariableLayers.Add(session.Top);
+            paintersVariableLayers.Reverse();
 
-            // Add files
-            foreach (var fileKey in GlobalFileService.GetFileKeys())
-                asDict.Add(fileKey, GlobalFileService.GetFileData(fileKey));
+            foreach (var variableLayer in paintersVariableLayers)
+            {
+                foreach (var @var in ((SequenceItemAbstract)variableLayer).NewVariables)
+                    if (asDict.ContainsKey(var.Key))
+                        asDict[var.Key] = var.Value;
+                    else
+                        asDict.Add(var.Key, var.Value);
+            }
 
             return asDict.ToDictionary(k => k.Key, v => v.Value);
         }
@@ -97,13 +102,13 @@ namespace PlainSequencer.SequenceItemActions
         public int PeerIndex => peerIndex;
 
         public string FullAncestryName =>
-            string.Join(".", 
-                new[] { this.Name }.Concat(GetParents()).Reverse() 
+            string.Join(" => ", 
+                new[] { this.Name }.Concat(GetParentsNames()).Reverse() 
             );
 
-        public string PeerUniqueFullName => $"{FullAncestryName}-{peerIndex}";
+        public string FullAncestryWithPeerName => $"{FullAncestryName} (FanOut#{peerIndex})";
 
-        public string PeerUniqueWithRetryIndexName => $"{PeerUniqueFullName}-retry{ActionExecuteCount}";
+        public string FullAncestryWithPeerWithRetryName => $"{FullAncestryWithPeerName}(Retry#{ActionExecuteCount-1})";
 
         public object Model => this.model;
 
@@ -130,6 +135,8 @@ namespace PlainSequencer.SequenceItemActions
         private bool isFail;
         private string failMessage;
 
+        public bool IsItemSuccess => !isFail;
+
         public bool IsFail
         {
             get
@@ -147,11 +154,43 @@ namespace PlainSequencer.SequenceItemActions
 
         public DateTime Finished { get; set; }
 
+        public string SequenceDiagramNotation
+        {
+            get
+            {
+                var soloProgress = new LogSequence();
+                foreach (var node in GetParents().Reverse().Concat(new[] { this }))
+                {
+                    var sia = (SequenceItemAbstract)node;
+                    soloProgress.StartItem(sia);
+                    soloProgress.Progress(sia, $"{sia.LiteralResponse}", SequenceProgressLogLevel.Diagnostic);
+
+                    if (!sia.IsItemSuccess)
+                        soloProgress.Fail(sia, sia.FailMessage);
+
+                    soloProgress.FinishedItem(sia);
+                }
+
+                return soloProgress.GetSequenceDiagramNotation(null, SequenceProgressLogLevel.Diagnostic);
+            }
+        }
+
         public string Name => sequenceItem.name;
+
+        public string SequenceDiagramKey => Name.Replace('-', ' ');
 
         protected abstract Task<object> ActionAsyncInternal(CancellationToken cancelToken);
 
-        public string[] GetParents()
+        public ISequenceItemActionHierarchy[] GetParents()
+        {
+            var aboveMe = new List<ISequenceItemActionHierarchy>();
+            for (var parent = this.Parent; parent != null; parent = parent.Parent)
+                aboveMe.Add(parent);
+
+            return aboveMe.ToArray();
+        }
+
+        public string[] GetParentsNames()
         {
             var aboveMe = new List<string>();
             for (var parent = this.Parent; parent != null; parent = parent.Parent)
@@ -160,16 +199,19 @@ namespace PlainSequencer.SequenceItemActions
             return aboveMe.ToArray();
         }
 
-        public async Task<object> ActionAsync(CancellationToken cancelToken)
+        public async Task<object> ActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken)
         {
             var nextModel = await ActionAsyncInternal(cancelToken);
-            if (!IsFail || (IsFail && sequenceItem.is_continue_on_failure))
-                return await CascadeNextActionAsync(cancelToken, nextModel);
+            if (!IsItemSuccess)
+                await addToFailHoleAsync(this, (Dictionary<string, object>)MakeScribanModel(), cancelToken);
+
+            if (IsItemSuccess || sequenceItem.is_continue_on_failure)
+                return await CascadeNextActionAsync(addToFailHoleAsync, cancelToken, nextModel);
 
             return nextModel;
         }
 
-        protected async Task<object> CascadeNextActionAsync(CancellationToken cancelToken, object nextModel)
+        protected async Task<object> CascadeNextActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken, object nextModel)
         {
             var nextItem = nextSequenceItems.FirstOrDefault();
             var nextItemsNextItems = nextSequenceItems.Skip(1);
@@ -180,7 +222,7 @@ namespace PlainSequencer.SequenceItemActions
             var runItem = itemActionBuilderFactory.Fetch(this, nextModel, nextItem, nextItemsNextItems.ToArray());
 
             if (runItem is not null)
-                return await runItem.ActionAsync(cancelToken);
+                return await runItem.ActionAsync(addToFailHoleAsync, cancelToken);
 
             return nextModel;
         }

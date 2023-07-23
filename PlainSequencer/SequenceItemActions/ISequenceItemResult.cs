@@ -12,6 +12,8 @@ namespace PlainSequencer.SequenceItemActions
 
         bool IsFail { get; }
 
+        bool IsItemSuccess { get; }
+
         Exception Exception { get; set; }
 
         string LiteralResponse { get; }
@@ -19,8 +21,6 @@ namespace PlainSequencer.SequenceItemActions
         object ActionResult { get; }
 
         Dictionary<string, object> NewVariables { get; }
-
-        Dictionary<string, object> NewFileData { get; }
 
         void NullResult();
 

@@ -5,7 +5,6 @@ using PlainSequencer.Script;
 using PlainSequencer.SequenceItemActions;
 using PlainSequencer.SequenceItemSupport;
 using PlainSequencer.SequenceScriptLoader;
-using PlainSequencer.Stuff;
 using PlainSequencer.Stuff.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,6 @@ using System.Threading.Tasks;
 
 namespace PlainSequencer
 {
-
     public class Application : IApplication, ISequenceSession
     {
         private readonly ICommandLineOptions commandLineOptions;
@@ -71,7 +69,7 @@ namespace PlainSequencer
             var runItem = itemActionBuilderFactory.Fetch(null, startModel, firstSequenceItem, nextSequenceItems);
             Top = (ISequenceItemActionHierarchy)runItem;
 
-            var model = await runItem.ActionAsync(cancellationToken);
+            var model = await runItem.ActionAsync(AddToFailHoleAsync, cancellationToken);
             var result = (ISequenceItemResult)runItem;
 
             var isOutput = result.IsFail
@@ -132,6 +130,27 @@ namespace PlainSequencer
                 script = commandLineOptions.Direct;
 
             return script;
+        }
+
+        public async Task AddToFailHoleAsync(SequenceItemAbstract sequenceItemAbstract, IDictionary<string, object> scribanModel, CancellationToken cancellationToken)
+        {
+            _ = scribanModel ?? throw new ArgumentNullException(nameof(scribanModel));
+
+            if (!(Script?.fail_hole?.disable_stderr??false))
+                outputter.ErrorLine(Scriban.ScribanUtil.ScribanParse(Script?.fail_hole?.stderr_template ?? $"{new SequenceScript.FailHole().stderr_template}", scribanModel));
+
+            if (!Script?.fail_hole?.fail_to_sequence_items ?? false)
+                return;
+
+            var scriptHole = Script?.fail_hole?.sequence_for_failures ?? new List<SequenceItem>();
+            if (scriptHole.Any())
+            {
+                var action = itemActionBuilderFactory.Fetch(null, scribanModel, scriptHole.First(), scriptHole.Skip(1).ToArray());
+                var failScriptResult = await action.ActionAsync(async (ab, mod, can) => Console.Error.WriteLine($"{ab.Name} - {ab.FailMessage}"), cancellationToken);
+
+                if (!Script?.fail_hole?.disable_stderr ?? false)
+                    outputter.ErrorLine(((ISequenceItemResult)failScriptResult).LiteralResponse);
+            }
         }
     }
 }

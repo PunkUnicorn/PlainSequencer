@@ -1,11 +1,11 @@
-﻿using System.Dynamic;
+﻿//using System.Dynamic;
 
-namespace PlainSequencer
-{
-    public interface IServiceGlobalData
-    {
-        ExpandoObject GetData();
+//namespace PlainSequencer
+//{
+//    public interface IServiceGlobalData
+//    {
+//        ExpandoObject GetData();
 
-        void UpsertData(string key, object value);
-    }
-}
+//        void UpsertData(string key, object value);
+//    }
+//}

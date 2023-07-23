@@ -6,8 +6,6 @@ using System;
 
 namespace PlainSequencer.Autofac
 {
-    // https://stackoverflow.com/questions/49595198/autofac-resolving-through-factory-methods
-
     public class AutofacSequenceItemActionFactory : ISequenceItemActionFactory
     {
         private readonly ILifetimeScope scope;

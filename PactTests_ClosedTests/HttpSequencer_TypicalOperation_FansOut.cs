@@ -135,7 +135,9 @@ namespace PactTests_ClosedTests
                 sequenceNotation.Should().MatchRegex(MakeRegex(1));
                 sequenceNotation.Should().MatchRegex(MakeRegex(2));
                 sequenceNotation.Should().MatchRegex(MakeRegex(3));
-            }            
+
+                output.Error.Should().BeEmpty();
+            }
         }
 
         [Theory]
@@ -215,6 +217,9 @@ namespace PactTests_ClosedTests
                     sequenceNotation.Should().MatchRegex(expectedLastLineRegex);
                 else
                     sequenceNotation.Should().NotMatchRegex(expectedLastLineRegex);
+
+                if (output.Error.Length > 0)
+                    mrOutput.WriteLine($"\nStderr:\n{output.Error}");
             }
         }
 
@@ -274,8 +279,7 @@ namespace PactTests_ClosedTests
                     : JsonConvert.SerializeObject(JsonConvert.DeserializeObject(output.Output), Formatting.None);
 
                 actual.Should().Be(expectedOutput);
-
-
+                
                 /* 𝓢𝓮𝓺𝓾𝓮𝓷𝓬𝓮 𝓓𝓲𝓪𝓰𝓻𝓪𝓶 */
 
                 var title = $"{MethodBase.GetCurrentMethod().Name} {nameof(outputDespiteErrors)}={outputDespiteErrors}";
@@ -295,6 +299,15 @@ namespace PactTests_ClosedTests
                     sequenceNotation.Should().MatchRegex(expectedLastLineRegex);
                 else
                     sequenceNotation.Should().NotMatchRegex(expectedLastLineRegex);
+
+                // stderr
+                mrOutput.WriteLine($"\nStderr:\n{output.Error}");
+
+                output.Error.Should().StartWith("expandable+");
+                output.Error.Should().MatchRegex(MakeRegex(1, 'x'));
+                output.Error.Should().MatchRegex(MakeRegex(2, 'x'));
+                output.Error.Should().NotMatchRegex(MakeRegex(3, '>'));
+                output.Error.Should().EndWith($"end{Environment.NewLine}");
             }
         }
     }
