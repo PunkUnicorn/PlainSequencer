@@ -5,13 +5,13 @@ namespace PlainSequencer.Logging
 {
     public interface ILogSequence
     {
-        void StartItem(SequenceItemAbstract sequenceItemAbstract);
-        void Progress(SequenceItemAbstract sequenceItemCheck, string v, SequenceProgressLogLevel level);
-        void DataOutProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level);
-        void DataInProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level);
-        void Fail(SequenceItemAbstract item, string message);
-        void Fail(SequenceItemAbstract item, Exception message);
-        void FinishedItem(SequenceItemAbstract sequenceItemAbstract);
+        void StartItem(ISequenceItemAction item);
+        void Progress(ISequenceItemAction sequenceItemCheck, string v, SequenceProgressLogLevel level);
+        void DataOutProgress(ISequenceItemAction item, string message, SequenceProgressLogLevel level);
+        void DataInProgress(ISequenceItemAction item, string message, SequenceProgressLogLevel level);
+        void Fail(ISequenceItemAction item, string message);
+        void Fail(ISequenceItemAction item, Exception message);
+        void FinishedItem(ISequenceItemAction sequenceItemAbstract);
         void SequenceComplete(bool isSuccess, object model);
         string GetSequenceDiagramNotation(string title, SequenceProgressLogLevel level = SequenceProgressLogLevel.Diagnostic);
     }

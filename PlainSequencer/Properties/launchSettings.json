@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PlainSequencer": {
+      "commandName": "Project",
+      "commandLineArgs": "--yaml test1.yml --args \"apiKey=<key here>\""
+    }
+  }
+}

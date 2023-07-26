@@ -94,7 +94,7 @@ namespace PlainSequencer.SequenceItemActions
             {
                 this.WorkingBody = ScribanUtil.ScribanParse(this.sequenceItem.http.body, scribanModel);
 
-                if (this.sequenceItem.http.save.request_content_filename != null)
+                if (this.sequenceItem.http.save.filename != null)
                 {
                     SaveTextRequest(scribanModel, WorkingBody);
                 }
@@ -118,7 +118,7 @@ namespace PlainSequencer.SequenceItemActions
 
         private void SaveTextRequest(object scribanModel, string workingBody)
         {
-            var saveBodyFilename = ScribanUtil.ScribanParse(this.sequenceItem.http.save.request_content_filename, scribanModel);
+            var saveBodyFilename = ScribanUtil.ScribanParse(this.sequenceItem.http.save.filename, scribanModel);
             var saveBodyPath = Path.GetDirectoryName(saveBodyFilename);
             if (!Directory.Exists(saveBodyPath))
                 Directory.CreateDirectory(saveBodyPath);
@@ -139,7 +139,7 @@ namespace PlainSequencer.SequenceItemActions
             var folderSaveName = this.sequenceItem.http.save?.folder ?? "";
             var saveTo = ScribanUtil.ScribanParse(folderSaveName, saveModel);
 
-            var contentSaveName = this.sequenceItem.http.save?.response_content_filename ?? "";
+            var contentSaveName = this.sequenceItem.http.save?.filename ?? "";
             if (contentSaveName.Trim().Length > 0)
             {
                 var contentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(contentSaveName, saveModel));
@@ -147,7 +147,7 @@ namespace PlainSequencer.SequenceItemActions
 
                 Directory.CreateDirectory(Path.GetDirectoryName(contentFn));
 
-                if (this.sequenceItem.http.save.response_content_is_binary)
+                if (this.sequenceItem.http.save.is_content_binary)
                 {
                     if (httpResponse != null) 
                         using (Stream output = File.OpenWrite(contentFn)) 
@@ -157,7 +157,7 @@ namespace PlainSequencer.SequenceItemActions
                     File.WriteAllText(contentFn, responseContent);
             }
 
-            var responseSaveName = this.sequenceItem.http.save?.response_info_filename ?? "";
+            var responseSaveName = this.sequenceItem.http.save?.filename ?? "";
             if (httpResponse != null && responseSaveName.Trim().Length > 0)
             {
                 var nonContentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(responseSaveName, saveModel));

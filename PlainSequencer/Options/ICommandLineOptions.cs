@@ -1,4 +1,6 @@
 ﻿using PlainSequencer.Script;
+using System.Collections.Generic;
+using System.Dynamic;
 
 namespace PlainSequencer.Options
 {
@@ -9,5 +11,7 @@ namespace PlainSequencer.Options
         string JsonFile { get; set; }
         //string Variables { get; set; }
         string YamlFile { get; set; }
+
+        public IEnumerable<string> Args { get; }
     }
 }

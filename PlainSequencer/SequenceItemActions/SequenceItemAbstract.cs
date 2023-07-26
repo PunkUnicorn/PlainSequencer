@@ -1,4 +1,5 @@
-﻿using PlainSequencer.Logging;
+﻿using Newtonsoft.Json;
+using PlainSequencer.Logging;
 using PlainSequencer.Options;
 using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
@@ -8,12 +9,12 @@ using System.Dynamic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using static PlainSequencer.SequenceItemActions.ISequenceItemActionRun;
+using static PlainSequencer.SequenceItemActions.ISequenceItemAction;
 using static PlainSequencer.SequenceItemActions.SequenceItemStatic;
 
 namespace PlainSequencer.SequenceItemActions
 {
-    public abstract class SequenceItemAbstract : ISequenceItemResult, ISequenceItemActionRun, ISequenceItemActionHierarchy
+    public abstract class SequenceItemAbstract : ISequenceItemAction, ISequenceItemResult, ISequenceItemActionRun, ISequenceItemActionHierarchy
     {
         // https://stackoverflow.com/questions/49595198/autofac-resolving-through-factory-methods
 
@@ -57,6 +58,7 @@ namespace PlainSequencer.SequenceItemActions
             retval.now = $"{DateTime.Now.ToShortDateString()} {DateTime.Now.ToShortTimeString()}";
             retval.run_id = this.session.RunId;
             retval.command_args = this.commandLineOptions;
+            retval.args = this.commandLineOptions.Args?.ToDictionary(k=>k.Split('=')[0], v=>v.Split('=')[1]);
             retval.model = this.model;
             retval.sequence_item = this.sequenceItem;
             retval.sequence_item_run = (ISequenceItemActionRun)this;
@@ -77,9 +79,11 @@ namespace PlainSequencer.SequenceItemActions
                 paintersVariableLayers.Add(session.Top);
             paintersVariableLayers.Reverse();
 
-            foreach (var variableLayer in paintersVariableLayers)
+            foreach (var variableLayer in paintersVariableLayers
+                .Where(layer => layer is ISequenceItemResult)
+                .Cast<ISequenceItemResult>())
             {
-                foreach (var @var in ((SequenceItemAbstract)variableLayer).NewVariables)
+                foreach (var @var in variableLayer.NewVariables)
                     if (asDict.ContainsKey(var.Key))
                         asDict[var.Key] = var.Value;
                     else
@@ -103,7 +107,7 @@ namespace PlainSequencer.SequenceItemActions
 
         public string FullAncestryName =>
             string.Join(" => ", 
-                new[] { this.Name }.Concat(GetParentsNames()).Reverse() 
+                new[] { this.Name }.Concat(GetParentsFullPeerNames()).Reverse() 
             );
 
         public string FullAncestryWithPeerName => $"{FullAncestryName} (FanOut#{peerIndex})";
@@ -161,12 +165,21 @@ namespace PlainSequencer.SequenceItemActions
                 var soloProgress = new LogSequence();
                 foreach (var node in GetParents().Reverse().Concat(new[] { this }))
                 {
-                    var sia = (SequenceItemAbstract)node;
-                    soloProgress.StartItem(sia);
-                    soloProgress.Progress(sia, $"{sia.LiteralResponse}", SequenceProgressLogLevel.Diagnostic);
+                    if (node is not ISequenceItemResult)
+                        continue;
 
-                    if (!sia.IsItemSuccess)
-                        soloProgress.Fail(sia, sia.FailMessage);
+                    var sia = (ISequenceItemAction)node;
+                    var sir = (ISequenceItemResult)node;
+                    soloProgress.StartItem(sia);
+                    var jsonFormatted = JsonConvert.SerializeObject(sir.ActionResult, Formatting.Indented);
+                    //var desc = new String(jsonFormatted.Take(50).ToArray());
+                    //if (jsonFormatted.Length > 50)
+                    //    desc += "\\n...";
+
+                    soloProgress.Progress(sia, jsonFormatted, SequenceProgressLogLevel.Diagnostic);
+
+                    if (!sir.IsItemSuccess)
+                        soloProgress.Fail(sia, sir.FailMessage);
 
                     soloProgress.FinishedItem(sia);
                 }
@@ -195,6 +208,15 @@ namespace PlainSequencer.SequenceItemActions
             var aboveMe = new List<string>();
             for (var parent = this.Parent; parent != null; parent = parent.Parent)
                 aboveMe.Add(parent.Name);
+
+            return aboveMe.ToArray();
+        }
+
+        public string[] GetParentsFullPeerNames()
+        {
+            var aboveMe = new List<string>();
+            for (var parent = this.Parent; parent != null; parent = parent.Parent)
+                aboveMe.Add(parent.FullAncestryWithPeerName);
 
             return aboveMe.ToArray();
         }

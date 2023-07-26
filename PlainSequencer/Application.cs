@@ -67,54 +67,61 @@ namespace PlainSequencer
             Script = this.script;
             RunId = script.run_id;
             var runItem = itemActionBuilderFactory.Fetch(null, startModel, firstSequenceItem, nextSequenceItems);
+            if (runItem is null)
+                throw new InvalidOperationException(firstSequenceItem.name);
+
             Top = (ISequenceItemActionHierarchy)runItem;
 
             var model = await runItem.ActionAsync(AddToFailHoleAsync, cancellationToken);
-            var result = (ISequenceItemResult)runItem;
 
-            var isOutput = result.IsFail
+            var isOutput = runItem.IsFail
                 ? script.output_after_failure
                 : true;
 
             if (isOutput)
             {
-                logSequence.SequenceComplete(!result.IsFail, model);
-                var modelStr = JsonConvert.SerializeObject(model ?? "", Formatting.Indented);
-                if (modelStr.Length > 0)
-                    outputter.WriteLine(modelStr);
-            }
-            return !result.IsFail;
-        }
-
-        public static object TurnStringResponseIntoModel(string content)
-        {
-            object responseModel = null;
-            bool resolved = false;
-            try
-            {
-                try
+                logSequence.SequenceComplete(!runItem.IsFail, model);
+                if (model is not null)
+                if (model is not string || (model as string).Length > 0)
+                if (model is not IEnumerable<object> || (model as IEnumerable<object>).Count() > 0)
                 {
-                    responseModel = JsonConvert.DeserializeObject<List<IDictionary<string, object>>>(content);
-                    resolved = true;
+                    var modelStr = JsonConvert.SerializeObject(model, Formatting.Indented);
+                    if (modelStr.Length > 0)
+                        outputter.WriteLine(modelStr);
                 }
-                catch { }
-
-                if (!resolved) try
-                    {
-                        responseModel = JsonConvert.DeserializeObject<List<object>>(content);
-                        resolved = true;
-                    }
-                    catch { }
-
-                if (!resolved)
-                    responseModel = JsonConvert.DeserializeObject<object>(content);
             }
-            catch
-            {
-                responseModel = content;
-            }
-            return responseModel;
+            return !runItem.IsFail;
         }
+
+        //public static object TurnStringResponseIntoModel(string content)
+        //{
+        //    object responseModel = null;
+        //    bool resolved = false;
+        //    try
+        //    {
+        //        try
+        //        {
+        //            responseModel = JsonConvert.DeserializeObject<List<IDictionary<string, object>>>(content);
+        //            resolved = true;
+        //        }
+        //        catch { }
+
+        //        if (!resolved) try
+        //            {
+        //                responseModel = JsonConvert.DeserializeObject<List<object>>(content);
+        //                resolved = true;
+        //            }
+        //            catch { }
+
+        //        if (!resolved)
+        //            responseModel = JsonConvert.DeserializeObject<object>(content);
+        //    }
+        //    catch
+        //    {
+        //        responseModel = content;
+        //    }
+        //    return responseModel;
+        //}
 
         private SequenceScript LoadScript()
         {

@@ -23,67 +23,85 @@ namespace PlainSequencer.Logging
 
         private Dictionary<int, SequenceArrow> sequenceArrows = new Dictionary<int, SequenceArrow>();
 
-        public void Fail(SequenceItemAbstract item, string message)
+        public void Fail(ISequenceItemAction item, string message)
         {
-            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            var uniqueItemKey = itemH.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].ArrowNotation = "-x";
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{SequenceProgressLogLevel.Brief}>Error: {message}");
 
             Console.WriteLine(message);
         }
 
-        public void Fail(SequenceItemAbstract item, Exception e)
+        public void Fail(ISequenceItemAction item, Exception e)
         {
-            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            var uniqueItemKey = itemH.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].ArrowNotation = "-x";
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{SequenceProgressLogLevel.Brief}>Error: {e.Message}");
 
             Console.WriteLine(e.Message);
         }
 
-        public void Progress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
+        public void Progress(ISequenceItemAction item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            var uniqueItemKey = itemH.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
         }
 
-        public void DataOutProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
+        public void DataOutProgress(ISequenceItemAction item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            var uniqueItemKey = itemH.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
         }
 
-        public void DataInProgress(SequenceItemAbstract item, string message, SequenceProgressLogLevel level)
+        public void DataInProgress(ISequenceItemAction item, string message, SequenceProgressLogLevel level)
         {
-            var uniqueItemKey = item.FullAncestryWithPeerName.GetHashCode();
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            var uniqueItemKey = itemH.FullAncestryWithPeerName.GetHashCode();
             sequenceArrows[uniqueItemKey].NotesFollowing.Add($"<{level}>{message}");
 
             Console.WriteLine(message);
         }
 
-        public void FinishedItem(SequenceItemAbstract item)
+        public void FinishedItem(ISequenceItemAction item)
         {
         }
 
-        public void StartItem(SequenceItemAbstract item)
+        public void StartItem(ISequenceItemAction item)
         {
-            Func<ISequenceItemActionHierarchy, ISequenceItemActionRun> castToIRun = (a) => (ISequenceItemActionRun)a;
+            if (item is not ISequenceItemActionHierarchy) throw new InvalidOperationException(nameof(item));
+            var itemH = item as ISequenceItemActionHierarchy;
+
+            Func<ISequenceItemActionHierarchy, ISequenceItemAction> castHiToAction = (a) => (ISequenceItemAction)a;
             var sa = new SequenceArrow
             {
-                From = CleanName(castToIRun(item.Parent)?.SequenceDiagramKey),
-                To = CleanName(castToIRun(item).SequenceDiagramKey),
+                From = CleanName(castHiToAction(itemH.Parent)?.SequenceDiagramKey),
+                To = CleanName(item.SequenceDiagramKey),
                 Description = CleanModel(item.Model),
                 JsonBytes = JsonConvert.SerializeObject(item.Model).Length
             };
 
-            sequenceArrows.Add(item.FullAncestryWithPeerName.GetHashCode(), sa);
+            sequenceArrows.Add(itemH.FullAncestryWithPeerName.GetHashCode(), sa);
             
             if (item.SequenceItem.is_model_array)
-                sa.NotesFollowing.Add($"<{SequenceProgressLogLevel.Diagnostic}>//Fan out {item.PeerIndex}//");
+                sa.NotesFollowing.Add($"<{SequenceProgressLogLevel.Diagnostic}>//Fan out {itemH.PeerIndex}//");
 
         }
 
@@ -97,7 +115,12 @@ namespace PlainSequencer.Logging
             if (model is string)
                 return cleanFunc(model.ToString());
 
-            return cleanFunc(JsonConvert.SerializeObject(model, Formatting.Indented));
+            var jsonFormatted = cleanFunc(JsonConvert.SerializeObject(model, Formatting.Indented));
+            //var desc = new String(jsonFormatted.Take(50).ToArray());
+            //if (jsonFormatted.Length > 50)
+            //    desc += "\\n...";
+            //return desc;
+            return jsonFormatted;
         }
 
         public void SequenceComplete(bool isSuccess, object model)

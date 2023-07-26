@@ -23,7 +23,7 @@ namespace PlainSequencer
 
         static int Main(string[] args)
         {
-            string stdin = null;
+            string stdin = "";
             if (Console.IsInputRedirected)
                 using (StreamReader reader = new StreamReader(Console.OpenStandardInput(), Console.InputEncoding))
                     stdin = reader.ReadToEnd();
@@ -35,13 +35,28 @@ namespace PlainSequencer
                     return (int)ReturnValues.TestMalfunction;
 
                 var app = scope.Resolve<IApplication>();
+                var log = scope.Resolve<ILogSequence>();
 
-                var startingModel = Application.TurnStringResponseIntoModel(stdin);
+                var startingModel = SequenceItemStatic.GetResponseItems(null, null, stdin);//.TurnStringResponseIntoModel(stdin);
 
-                if (app.RunAsync(startingModel).Result)
-                    return (int)ReturnValues.Success;
-                else
-                    return (int)ReturnValues.Fail;
+                try
+                {
+                    if (app.RunAsync(null /*startingModel*/).Result)
+                        return (int)ReturnValues.Success;
+                    else
+                        return (int)ReturnValues.Fail;
+                }
+                catch (Exception e)
+                {
+                    if (e is AggregateException)
+                        Console.WriteLine(string.Join("\n", (e as AggregateException).InnerExceptions));
+                    else
+                        Console.WriteLine(e.Message);
+
+                    Console.WriteLine(log.GetSequenceDiagramNotation("Exception"));
+
+                    return (int)ReturnValues.TestMalfunction;
+                }
             }
         }
 

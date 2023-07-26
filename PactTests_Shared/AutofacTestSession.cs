@@ -47,10 +47,10 @@ namespace PactTests_Shared
                 .SingleInstance();
 
             builder.RegisterType<AutofacSequenceItemActionFactory>().As<ISequenceItemActionFactory>()
-                .SingleInstance();
+                .InstancePerLifetimeScope();
 
             builder.RegisterType<SequenceItemActionBuilder>().As<ISequenceItemActionBuilder>()
-                .SingleInstance();
+                .InstancePerLifetimeScope();
 
             builder.RegisterType<AutofacSequenceItemActionBuilderFactory>().As<ISequenceItemActionBuilderFactory>()
                 .SingleInstance();

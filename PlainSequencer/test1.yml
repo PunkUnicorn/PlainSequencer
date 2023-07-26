@@ -1,0 +1,47 @@
+﻿name: cat scratcher
+args:
+  - apiKey
+
+output_after_failure: true
+client_timeout_seconds: 20
+sequence_items:
+  - name: get cats
+    http:
+      # https://developers.thecatapi.com/view-account/ylX4blBYT9FaoVd6OhvR?report=bOoHBz-8t
+      method: get
+      url: https://api.thecatapi.com/v1/images/search
+      query:
+        - key: limit
+          value: 30
+      header:
+        - key: x-api-key
+          value: '{{args.apiKey}}'
+    #[
+    #  {
+    #    "id": "3i5",
+    #    "url": "https://cdn2.thecatapi.com/images/3i5.jpg",
+    #    "width": 492,
+    #    "height": 316
+    #  }, 
+    # ...
+    #]
+ # - name: check picture url
+#    is_model_array: true
+#    is_continue_on_failure: false
+#    check: 
+#      pass_template: '{{model.url != empty}}'
+#      fail_info_template: 'url is empty\n{{model}}'
+
+  - name: assemble cat post
+    is_model_array: true
+    transform: 
+      new_model_template: |
+        {{if model.breeds != empty -}}
+          {{model.breeds.size | string.pluralize 'breed:' 'breeds:' -}}
+          {{newBreeds = []
+          for breed in model.breeds
+             newBreeds = newBreeds | array.add breed.name
+          end -}}
+          {{newBreeds | array.join ', '}}
+        {{end -}}
+        [img]{{model.url}}[/img]

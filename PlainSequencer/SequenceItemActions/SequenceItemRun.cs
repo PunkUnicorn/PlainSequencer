@@ -26,10 +26,10 @@ namespace PlainSequencer.SequenceItemActions
 		public SequenceItemRun(ILogSequence logProgress, ISequenceSession session, ICommandLineOptions commandLineOptions, ISequenceItemActionBuilderFactory itemActionBuilderFactory, SequenceItemCreateParams @params)
 			: base(logProgress, session, commandLineOptions, itemActionBuilderFactory, @params) { }
 
-		public IEnumerable<string> Compile(SequenceItem sequenceItem)
-		{
-			return new string[] { };
-		}
+		//public IEnumerable<string> Compile(SequenceItem sequenceItem)
+		//{
+		//	return new string[] { };
+		//}
 
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken)
         {

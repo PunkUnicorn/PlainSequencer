@@ -7,20 +7,31 @@ namespace PlainSequencer.SequenceItemActions
 {
     public interface ISequenceItemActionRun
     {
-        delegate Task AddToFailHoleAsync(SequenceItemAbstract sequenceItemAbstract, IDictionary<string, object> scribanModel, CancellationToken cancellationToken);
+        //delegate Task AddToFailHoleAsync(SequenceItemAbstract sequenceItemAbstract, IDictionary<string, object> scribanModel, CancellationToken cancellationToken);
 
-        Task<object> ActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken);
+        //Task<object> ActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken);
+        // ^ I think this should be in ISequenceItemAction, and then composite doesn't take ISequenceActionRun
+        // Possibly Model too, but also in ..ActionRun(?)
 
         int ActionExecuteCount { get; set; }
 
-        object Model { get; }
+        //object Model { get; }
 
-        DateTime Started { get; }
+        DateTime Started { get; set; }
 
-        DateTime Finished { get; }
+        DateTime Finished { get; set; }
 
-        string SequenceDiagramNotation { get; }
+        //string SequenceDiagramNotation { get; }
 
-        string SequenceDiagramKey { get; }
+        //string SequenceDiagramKey { get; }
+
+        Exception Exception { get; set; }
+
+        ISequenceItemResult Fail(string msg, Exception e = null);
+        ISequenceItemResult Fail(Exception e = null);
+
+        void NullResult();
+
+        void BlankResult();
     }
 }

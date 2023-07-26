@@ -142,7 +142,8 @@ end";
 	{
 		public string folder { get; set; }
 		public string filename { get; set; }
-		public string content { get; set; }
+		public string content_template { get; set; } = "{{model}}";
+		public bool is_content_binary { get; set; }
 		public string breadcrumb { get; set; } = "{{sequence_item.save.filename}}";
 	}
 
@@ -178,15 +179,19 @@ end";
 		public string breadcrumb { get; set; } = "{{sequence_item.load.csv}}{{sequence_item.load.json}}";
 	}
 
-	public class HttpSave : Save
-	{
-        public string response_info_filename;
+	//public class HttpSave : Save
+	//{
+	//	public Save request { get; set; }
+	//	public Save response { get; set; }
 
-        public string request_content_filename { get; set; }
-		public bool request_content_is_binary { get; set; }
-		public string response_content_filename { get; set; }
-		public bool response_content_is_binary { get; set; }
-	}
+
+	//	//public string response_info_filename;
+
+ // //      public string request_content_filename { get; set; }
+	//	//public bool request_content_is_binary { get; set; }
+	//	//public string response_content_filename { get; set; }
+	//	//public bool response_content_is_binary { get; set; }
+	//}
 
 	public class Http
 	{
@@ -198,7 +203,14 @@ end";
 		public NamedStringList query { get; set; }
 		public NamedStringList header { get; set; }
 		public string body { get; set; }
-		public HttpSave save { get; set; }
+		// save is processed then also so are saves if any or all are populated.
+		// Scriban model contains additional:
+		//   request # - A dotnet HttpRequestMessage object
+		//	 request_content_as_text # - The request body as text
+		//   request_content_as_binary # - The request body as binary
+		public Save save { get; set; }
+		public Save[] saves { get; set; }
+
 
 	}
 }

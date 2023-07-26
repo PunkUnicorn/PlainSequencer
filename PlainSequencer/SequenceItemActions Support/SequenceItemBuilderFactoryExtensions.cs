@@ -6,12 +6,13 @@ namespace PlainSequencer.SequenceItemSupport
 {
     public static class SequenceItemBuilderFactoryExtensions
     {
-        public static ISequenceItemActionRun Fetch(this ISequenceItemActionBuilderFactory builderFactory, ISequenceItemActionHierarchy parent, object model, SequenceItem thisItem, SequenceItem[] nextItems)
+        public static ISequenceItemAction Fetch(this ISequenceItemActionBuilderFactory builderFactory, ISequenceItemActionHierarchy parent, object model, SequenceItem thisItem, SequenceItem[] nextItems)
         {
             var builder = builderFactory.ResolveSequenceItemActionBuilder()
                     .WithThisSequenceItem(thisItem)
                     .WithAncestory(parent)
-                    .WithNextSequenceItemsAs(nextItems);
+                    .WithNextSequenceItemsAs(nextItems)
+                    .WithThisPeerIndex(0);
 
             if (thisItem.is_model_array && model as IEnumerable<object> is null)
                 model = new[] { model };
@@ -24,17 +25,17 @@ namespace PlainSequencer.SequenceItemSupport
                .Build();
 
             parent?.Children?.Add(actionItem as ISequenceItemActionHierarchy);
-            return actionItem as ISequenceItemActionRun;
+            return actionItem as ISequenceItemAction;
         }
 
-        private static ISequenceItemActionRun FetchComposite(ISequenceItemActionHierarchy parent, object model, ISequenceItemActionBuilder builder)
+        private static ISequenceItemAction FetchComposite(ISequenceItemActionHierarchy parent, object model, ISequenceItemActionBuilder builder)
         {
             var models = (IEnumerable<object>)model;
             var retval = CompositeSequenceItemAction.FanOutBuildFrom(builder, models);
             
             if (retval is not null)
                 parent?.Children?.AddRange(retval.Children);
-
+            //its a child of two parents, the first http item and the compound item!??
             return retval;
         }
     }

@@ -1,4 +1,4 @@
-﻿namespace PlainSequencer.SequenceItemActions
+﻿namespace PlainSequencer.Logging
 {
     public enum SequenceProgressLogLevel
     {

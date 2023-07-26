@@ -18,7 +18,7 @@ namespace PlainSequencer.SequenceItemActions
 
         ISequenceItemActionHierarchy[] GetParents();
 
-        string[] GetParentsNames();
+        //string[] GetParentsNames();
 
         int PeerIndex { get; }
 

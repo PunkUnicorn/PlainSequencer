@@ -12,22 +12,26 @@ namespace PlainSequencer.SequenceItemActions
     {
         public static dynamic GetResponseItems(ILogSequence logSequence, SequenceItemAbstract item, string content)
         {
+            if ((content?.Length ?? -1) == 0)
+                return content;
+
             dynamic responseModel = null;
-            var item_quantity_cap = item.SequenceItem?.take_only_n;
+            var item_quantity_cap = item?.SequenceItem?.take_only_n;
             try
             {
                 bool resolved = false;
                 try 
                 {
+                    //responseModel = JsonConvert.DeserializeObject<List<IDictionary<string, object>>>(content);
                     responseModel = JsonConvert.DeserializeObject<List<ExpandoObject>>(content);
                     resolved = true;
                 } catch { }
 
-                if (!resolved) try 
-                { 
-                    responseModel = JsonConvert.DeserializeObject<List<object>>(content);
-                    resolved = true;
-                } catch { }
+                if (!resolved) try
+                    {
+                        responseModel = JsonConvert.DeserializeObject<List<object>>(content);
+                        resolved = true;
+                    } catch { }
 
                 if (!resolved) try
                 {
@@ -56,11 +60,14 @@ namespace PlainSequencer.SequenceItemActions
 
         public static object Clone(object model)
         {
-            var content = JsonConvert.SerializeObject(model);
-
+            return model;
+            //return SequenceItemStatic.GetResponseItems(null, null, model);
             if (model == null) return null;
+            if (((model as string)?.Length ?? -1) == 0) return "";
 
-            try {
+            var content = JsonConvert.SerializeObject(model);
+            try
+            {
                 bool resolved = false;
                 dynamic clone = null;
                 try
@@ -91,35 +98,35 @@ namespace PlainSequencer.SequenceItemActions
             }
         }
 
-        public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemAction siAct, Func<Task<T>> f)
+        public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemActionRun siRun, Func<Task<T>> f)
         {
-            logProgress.StartItem((SequenceItemAbstract)siAct);
-            siAct.Started = DateTime.Now;
-            var sir = (ISequenceItemResult)siAct;
+            var siAct = (ISequenceItemAction)siRun;
+            logProgress.StartItem(siAct);
+            siRun.Started = DateTime.Now;
             try { return await f(); } 
             catch (Exception e) 
-            { 
-                sir.Exception = e;
-                sir.Fail(e);
+            {
+                siRun.Exception = e;
+                siRun.Fail(e);
                 return default(T);
             }
             finally
             {
-                siAct.Finished = DateTime.Now;
-                logProgress.FinishedItem((SequenceItemAbstract)siAct);
+                siRun.Finished = DateTime.Now;
+                logProgress.FinishedItem(siAct);
 
-                var siStract = (SequenceItemAbstract)siAct;
+                var sir = (ISequenceItemResult)siRun;
                 if (sir.IsFail)
                 {
                     if (sir.Exception != null)
-                        logProgress.Fail(siStract, sir.Exception);
+                        logProgress.Fail(siAct, sir.Exception);
                     else
-                        logProgress.Fail(siStract, sir.FailMessage);
+                        logProgress.Fail(siAct, sir.FailMessage);
 
                     if (!siAct.SequenceItem.is_continue_on_failure)
-                        sir.NullResult();
+                        siRun.NullResult();
                     else if (sir.ActionResult is null)
-                        sir.BlankResult();
+                        siRun.BlankResult();
                 }
             }
         }

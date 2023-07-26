@@ -1,17 +1,31 @@
 ﻿using PlainSequencer.Script;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace PlainSequencer.SequenceItemActions
 {
     public interface ISequenceItemAction
     {
+        delegate Task AddToFailHoleAsync(SequenceItemAbstract sequenceItemAbstract, IDictionary<string, object> scribanModel, CancellationToken cancellationToken);
+
         SequenceItem SequenceItem { get; }
 
-        IEnumerable<string> Compile(SequenceItem sequenceItem);
+        Task<object> ActionAsync(AddToFailHoleAsync addToFailHoleAsync, CancellationToken cancelToken);
 
-        DateTime Started { get; set; }
+        object Model { get; }
 
-        DateTime Finished { get; set;  }
+        //IEnumerable<string> Compile(SequenceItem sequenceItem);
+
+        bool IsFail { get; }
+
+        string SequenceDiagramNotation { get; }
+
+        string SequenceDiagramKey { get; }
+
+        DateTime Started { get; }
+
+        DateTime Finished { get; }
     }
 }

@@ -32,6 +32,6 @@ namespace PlainSequencer.SequenceItemSupport
 
         public ISequenceItemActionHierarchy[] GetParents() => throw new NotImplementedException();
 
-        public string[] GetParentsNames() => throw new NotImplementedException();
+        //public string[] GetParentsNames() => throw new NotImplementedException();
     }
 }
