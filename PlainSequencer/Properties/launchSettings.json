@@ -2,7 +2,7 @@
   "profiles": {
     "PlainSequencer": {
       "commandName": "Project",
-      "commandLineArgs": "--yaml test1.yml --args \"apiKey=<key here>\""
+      "commandLineArgs": "--yaml test1.yml --args \"apiKey=live_m67xZaGJt4nGaMchbLbFWZ7bqVwbftj4YA21aQkHaW6vc25vFFIb4Layi4NN19Ch\""
     }
   }
 }

@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using PlainSequencer.Script;
+﻿using PlainSequencer.Script;
 using PlainSequencer.SequenceItemActions;
 using System;
 using System.Collections.Generic;
@@ -10,7 +9,7 @@ using static PlainSequencer.SequenceItemActions.ISequenceItemAction;
 
 namespace PlainSequencer.SequenceItemSupport
 {
-    public class CompositeSequenceItemAction : ISequenceItemAction, ISequenceItemActionHierarchy/*, ISequenceItemActionRun, ISequenceItemResult*/
+    public class CompositeSequenceItemAction : ISequenceItemAction, ISequenceItemActionHierarchy
     {
         public ISequenceItemActionHierarchy Parent { get; set; }
 
@@ -26,7 +25,6 @@ namespace PlainSequencer.SequenceItemSupport
                 ?.Where(child => child != null)
                 ?.Cast<ISequenceItemActionRun>()
                 ?.Min(child => child.Started) ?? DateTime.MinValue;
-            //set => throw new NotImplementedException();
         }
 
         public DateTime Finished
@@ -35,12 +33,8 @@ namespace PlainSequencer.SequenceItemSupport
                 ?.Where(child => child != null)
                 ?.Cast<ISequenceItemActionRun>()
                 ?.Max(child => child.Finished) ?? DateTime.MinValue;
-            //set => throw new NotImplementedException();
         }
-        public string Name => SequenceItem.name; //string.Join(",", Children
-                                                 //?.Where(child => child != null)
-                                                 //?.Cast<ISequenceItemActionHierarchy>()
-                                                 //?.Select(child => child.Name));
+        public string Name => SequenceItem.name;
 
         string ISequenceItemActionHierarchy.FullAncestryName => throw new NotImplementedException();
 
@@ -48,12 +42,10 @@ namespace PlainSequencer.SequenceItemSupport
 
         public string FullAncestryWithPeerWithRetryName => throw new NotImplementedException();
 
-        //public int ActionExecuteCount { get; set; }
-
         public object Model { get; set; }
 
         public static CompositeSequenceItemAction FanOutBuildFrom(ISequenceItemActionBuilder sequenceItemActionBuilder, IEnumerable<object> models)
-        { //^ Change to a yielded []?
+        {
             var retval = new List<ISequenceItemActionHierarchy>();
 
             var first = SequenceItemStatic.Clone(models?.FirstOrDefault());
@@ -100,65 +92,16 @@ namespace PlainSequencer.SequenceItemSupport
                     results.Add(peerIndex, result);
             }
 
-            // return the results array in the same order as the children nodes
-            //var allResults = Children
-            //    //.OrderBy(o => o.PeerIndex)
-            //    .Cast<ISequenceItemResult>()
-            //    .Select(s => s.ActionResult)
-            //    .Where(task => task != null);
-
-            //return allResults.ToArray();
-
-            //Task.WaitAll(results.Values.ToArray());
-            // return results.OrderBy(o => o.Key).Where(w => !w.ValueSelect(s => s.Value).ToArray();
             return results.Values.ToArray();
         }
 
-        //public IEnumerable<string> Compile(SequenceItem sequenceItem)
-        //{
-        //    throw new System.NotImplementedException();
-        //}
-
-        //public ISequenceItemResult Fail(Exception e = null)
-        //{
-        //    failMessage = e?.Message;
-        //    exception = e;
-        //    isFail = true;
-        //    return this;
-        //}
-
-        //public ISequenceItemResult Fail(string msg, Exception e = null)
-        //{
-        //    failMessage = msg;
-        //    exception = e;
-        //    isFail = true;
-        //    return this;
-        //}
-
         public ISequenceItemActionHierarchy[] GetParents() => throw new NotImplementedException();
-
-        //public string[] GetParentsNames() => throw new NotImplementedException();//Children.FirstOrDefault()?.GetParents();
-
-        public string FullAncestryName() => Children.FirstOrDefault()?.FullAncestryName;
 
         public int PeerIndex => throw new InvalidOperationException(nameof(PeerIndex));
 
         public string SequenceDiagramNotation => throw new InvalidOperationException(nameof(SequenceDiagramNotation));
 
         public string SequenceDiagramKey => throw new InvalidOperationException(nameof(SequenceDiagramKey));
-
-        //public string FailMessage
-        //{
-        //    get
-        //    {
-        //        var allResults = Children
-        //            .Cast<ISequenceItemResult>()
-        //            .Select(s => $"{(s as ISequenceItemActionHierarchy).FullAncestryWithPeerName}: {s.FailMessage}")
-        //            .Where(msg => msg != null);
-
-        //        return string.Join("\n", allResults);
-        //    }
-        //}
 
         public bool IsFail
         {
@@ -168,13 +111,5 @@ namespace PlainSequencer.SequenceItemSupport
                 ?.Cast<ISequenceItemResult>()
                 ?.Any(child => child.IsFail) ?? false;
         }
-
-        //public bool IsItemSuccess => throw new InvalidOperationException();
-        //public Exception Exception => throw new InvalidOperationException();
-        //public string LiteralResponse => throw new InvalidOperationException();
-        //public object ActionResult => throw new InvalidOperationException();
-
-        //public 
-
     }
 }

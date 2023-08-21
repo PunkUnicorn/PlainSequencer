@@ -42,7 +42,7 @@ namespace PactTests_ClosedTests
             return new SequenceScript
             {
                 output_after_failure = outputDespiteErrors,
-                sequence_items = new List<SequenceItem>
+                sequence = new List<SequenceItem>
                 {
                     /* First */
                     new SequenceItem

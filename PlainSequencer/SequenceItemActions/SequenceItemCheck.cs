@@ -66,6 +66,8 @@ namespace PlainSequencer.SequenceItemActions
                     else
                         Fail(new SequenceItemCheckException(this.sequenceItem, this, scribanModel));
 
+                    await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.check.save, sequenceItem.check.saves);
+
                     return ActionResult;
                 });
             });

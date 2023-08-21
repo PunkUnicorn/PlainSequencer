@@ -3,8 +3,23 @@ args:
   - apiKey
 
 output_after_failure: true
-client_timeout_seconds: 20
-sequence_items:
+client_timeout_seconds: 5
+working_directory: '.\runoutput\{{run_id}}'
+
+fail_hole:
+  disable_stderr: false
+  fail_to_sequence: true
+  sequence:
+    - name: save fail
+      save:
+        filename: failsequence{{unique_no}}-{{}}
+        content_template:
+
+output:
+  result: stdout
+  notation: SequenceDiagram.txt
+
+sequence:
   - name: get cats
     http:
       # https://developers.thecatapi.com/view-account/ylX4blBYT9FaoVd6OhvR?report=bOoHBz-8t
@@ -35,6 +50,7 @@ sequence_items:
   - name: assemble cat post
     is_model_array: true
     transform: 
+      new_model_is_plain_text: true
       new_model_template: |
         {{if model.breeds != empty -}}
           {{model.breeds.size | string.pluralize 'breed:' 'breeds:' -}}

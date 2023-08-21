@@ -65,6 +65,9 @@ namespace PlainSequencer.SequenceItemActions
                     dynamic passData = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);
 
                     ActionResult = this.model;
+
+                    await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.load.save, sequenceItem.load.saves);
+
                     NewVariables.Add(this.sequenceItem.load.variable_name ?? defaultVariableName, passData);
 
                     return ActionResult;

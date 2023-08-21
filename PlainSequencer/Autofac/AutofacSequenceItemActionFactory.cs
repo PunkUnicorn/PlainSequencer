@@ -31,6 +31,8 @@ namespace PlainSequencer.Autofac
                 return scope.Resolve<SequenceItemLoad>(parameters);
             else if (type == nameof(SequenceItem.transform))
                 return scope.Resolve<SequenceItemTransform>(parameters);
+            else if (type == nameof(SequenceItem.save))
+                return scope.Resolve<SequenceItemSave>(parameters);
             else
                 throw new ArgumentException(type);
         }
@@ -47,6 +49,8 @@ namespace PlainSequencer.Autofac
                 return nameof(SequenceItem.load);
             else if (sequenceItem.transform != null)
                 return nameof(SequenceItem.transform);
+            else if (sequenceItem.save != null)
+                return nameof(SequenceItem.save);
 
             throw new ArgumentException($"Unknown sequence item type sequence item named: '{sequenceItem.name}'");
         }

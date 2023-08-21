@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using PlainSequencer.Logging;
+using PlainSequencer.Script;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -96,6 +97,16 @@ namespace PlainSequencer.SequenceItemActions
 
                 throw;
             }
+        }
+
+        public static async Task DoInlineSaveAsync(object content, object scribanModel, Save save, IEnumerable<Save> saves)
+        {
+            if (save is not null)
+                await SequenceItemSave.DoSaveAsync(save, content, scribanModel);
+
+            if (saves is not null)
+                foreach (var s in saves)
+                    await SequenceItemSave.DoSaveAsync(s, content, scribanModel);
         }
 
         public static async Task<T> FailableRun<T>(ILogSequence logProgress, ISequenceItemActionRun siRun, Func<Task<T>> f)

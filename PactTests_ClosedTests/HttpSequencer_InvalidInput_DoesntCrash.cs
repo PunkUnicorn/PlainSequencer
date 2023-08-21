@@ -50,7 +50,7 @@ namespace PactTests_ClosedTests
             /* Arrange */
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     new SequenceItem
                     {
                         name = "invalid_url",
@@ -110,7 +110,7 @@ namespace PactTests_ClosedTests
 
                 var testYamlSequence = new SequenceScript
                 {
-                    sequence_items = new List<SequenceItem> {
+                    sequence = new List<SequenceItem> {
                         /* First */
                         new SequenceItem
                         {

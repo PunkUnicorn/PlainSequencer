@@ -248,5 +248,10 @@ namespace PlainSequencer.SequenceItemActions
 
             return nextModel;
         }
+
+        public object GetCallGraph()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

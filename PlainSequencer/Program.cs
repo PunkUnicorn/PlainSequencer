@@ -106,6 +106,10 @@ namespace PlainSequencer
 
             public static void RegisterSequenceItemActions(ContainerBuilder builder)
             {
+                builder.RegisterType<SequenceItemSave>()
+                    .PropertiesAutowired(AutofacInjectedAttribute.AutofacInjectedAttributeOnly)
+                    .InstancePerDependency();
+
                 builder.RegisterType<SequenceItemCheck>()
                     .PropertiesAutowired(AutofacInjectedAttribute.AutofacInjectedAttributeOnly)
                     .InstancePerDependency();

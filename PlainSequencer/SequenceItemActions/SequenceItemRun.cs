@@ -6,7 +6,6 @@ using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
 using Polly;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
@@ -15,7 +14,7 @@ using static PlainSequencer.SequenceItemActions.SequenceItemStatic;
 
 namespace PlainSequencer.SequenceItemActions
 {
-	public class SequenceItemRunException : Exception
+    public class SequenceItemRunException : Exception
 	{
 		public SequenceItemRunException(string message) : base(message) { }
 		public SequenceItemRunException(string message, Exception innerException) : base(message, innerException) { }
@@ -66,6 +65,8 @@ namespace PlainSequencer.SequenceItemActions
 
 					var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, execReturn);
 					ActionResult = responseModel;
+
+					await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.run.save, sequenceItem.run.saves);
 
 					return ActionResult;
 				});

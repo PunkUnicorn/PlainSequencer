@@ -25,7 +25,7 @@ namespace PlainSequencer.SequenceItemActions
 
 		protected override async Task<object> ActionAsyncInternal(CancellationToken cancelToken) 
 		{
-			return await FailableRun<object>(logProgress, this, async delegate 
+			return await FailableRun(logProgress, this, async delegate 
 			{
 				if (this.sequenceItem.transform == null)
 					throw new NullReferenceException($"{nameof(this.sequenceItem)}.{nameof(this.sequenceItem.transform)} missing");
@@ -37,26 +37,29 @@ namespace PlainSequencer.SequenceItemActions
                 return await w.ExecuteAsync(async () =>
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 {
-					++this.ActionExecuteCount;
+                    ++this.ActionExecuteCount;
 
-					this.logProgress?.Progress(this, $"Transforming model...", SequenceProgressLogLevel.Brief);
+                    this.logProgress?.Progress(this, $"Transforming model...", SequenceProgressLogLevel.Brief);
 
-					this.logProgress?.Progress(this, $"Transforming:\n{this.sequenceItem.transform.new_model_template}", SequenceProgressLogLevel.Diagnostic);
+                    this.logProgress?.Progress(this, $"Transforming:\n{this.sequenceItem.transform.new_model_template}", SequenceProgressLogLevel.Diagnostic);
 
-					var scribanModel = MakeScribanModel();
+                    var scribanModel = MakeScribanModel();
 
-					var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
+                    var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
 
-					LiteralResponse = scribanProcessedTemplate;
-					this.logProgress?.Progress(this, $"Transformed to:\n{scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
+                    LiteralResponse = scribanProcessedTemplate;
+                    this.logProgress?.Progress(this, $"Transformed to:\n{scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
 
-					var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, scribanProcessedTemplate);
+                    if (this.sequenceItem.transform.new_model_is_plain_text)
+                        ActionResult = scribanProcessedTemplate;
+                    else
+                        ActionResult = SequenceItemStatic.GetResponseItems(this.logProgress, this, scribanProcessedTemplate);
 
-					ActionResult = responseModel;
-					return ActionResult;
-				});
+                    await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.transform.save, sequenceItem.transform.saves);
+
+                    return ActionResult;
+                });
 			});
 		}
-
-	}
+    }
 }

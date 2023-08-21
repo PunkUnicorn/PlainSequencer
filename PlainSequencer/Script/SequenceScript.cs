@@ -1,5 +1,4 @@
-﻿using PlainSequencer.Options;
-using PlainSequencer.Scriban;
+﻿using PlainSequencer.Scriban;
 using PlainSequencer.Stuff;
 using System.Collections.Generic;
 
@@ -16,18 +15,20 @@ namespace PlainSequencer.Script
 
         //public KeyVlueList header { get; set; }
         public int? client_timeout_seconds { get; set; }
+		public string working_directory { get; set; }
+
 		public class FailHole
 		{
 			public bool disable_stderr { get; set; }
 			public string stderr_template { get; set; } = @"expandable+ {{sequence_item_node.Name}} {{if sequence_item.is_model_array;}}FanOut#{{sequence_item_node.PeerIndex; end}}
 {{sequence_item_run.SequenceDiagramNotation}}
 end";
-			public bool fail_to_sequence_items { get; set; }
-			public List<SequenceItem> sequence_for_failures { get; set; }
+			public bool fail_to_sequence { get; set; }
+			public List<SequenceItem> sequence { get; set; }
         }
 		public FailHole fail_hole { get; set; }
 		public string run_id { get; set; }
-		public List<SequenceItem> sequence_items { get; set; }
+		public List<SequenceItem> sequence { get; set; }
 	}
 
 	/*
@@ -91,7 +92,8 @@ end";
 		public Load load { get; set; }
 		public Check check { get; set; }
 		public Transform transform { get; set; }
-		public Fork fork { get; set; }
+		public Save save { get; set; }
+		//public Fork fork { get; set; }
 		/* Mutually exclusive group end */
 
 
@@ -104,23 +106,38 @@ end";
 
 	public class Transform
     {
-        /// <summary>
-        /// A scriban template to allow transformations of the model to a new format
-        /// </summary>
-        public string new_model_template { get; set; }
-	}
-
-	// TODO: model stays as it was as it comes out the other side. Meanwhile the cloned model is passed into a new process
-	public class Fork
-    {
-		public List<SequenceItem> sequence_items { get; set; }
 		/// <summary>
-		/// Yaml or json filenames passed into <see cref="command_line_options"/> overrides anything passed into <seealso cref="sequence_items"/>
+		/// Set to true for the result to be plain text, otherwise it will be deserialised into a data object
 		/// </summary>
-		public CommandLineOptions command_line_options { get; set; }
+		public bool new_model_is_plain_text { get; set; }
+		/// <summary>
+		/// A scriban template to allow transformations of the model to a new format
+		/// </summary>
+		public string new_model_template { get; set; }
+		public Save save { get; set; }
+		public List<Save> saves { get; set; }
 	}
 
-    public class Check
+	//// TODO: model stays as it was as it comes out the other side. Meanwhile the cloned model is passed into a new process
+	//public class Fork
+ //   {
+	//	public List<SequenceItem> sequence_items { get; set; }
+	//	/// <summary>
+	//	/// Yaml or json filenames passed into <see cref="command_line_options"/> overrides anything passed into <seealso cref="sequence_items"/>
+	//	/// </summary>
+	//	public CommandLineOptions command_line_options { get; set; }
+	//}
+
+	public class Save
+	{
+		public string working_directory { get; set; }
+		public string filename { get; set; }
+		public string content_template { get; set; } = "{{model}}";
+		public bool is_content_binary { get; set; }
+		public string breadcrumb { get; set; } = "{{sequence_item.save.filename}}";
+	}
+
+	public class Check
     {
 		public string pass_template { get; set; }
 		public bool IsPass(object model)
@@ -136,15 +153,8 @@ end";
 		public string FailMessage(object model) => string.IsNullOrWhiteSpace(fail_info_template)
 			? ""
 			: ScribanUtil.ScribanParse(fail_info_template, model);
-	}
-
-    public class Save
-	{
-		public string folder { get; set; }
-		public string filename { get; set; }
-		public string content_template { get; set; } = "{{model}}";
-		public bool is_content_binary { get; set; }
-		public string breadcrumb { get; set; } = "{{sequence_item.save.filename}}";
+		public Save save { get; set; }
+		public List<Save> saves { get; set; }
 	}
 
 	public class Run
@@ -153,8 +163,9 @@ end";
 		public string args { get; set; }
 		public bool use_shell_execute { get; set; }
 		public string breadcrumb { get; set; } = "{{sequence_item.run.exec}}";
-
 		public bool is_ignore_exitcode { get; set; }
+		public Save save { get; set; }
+		public List<Save> saves { get; set; }
 	}
 
 	public class Load
@@ -177,6 +188,8 @@ end";
 		/* End of mutually exclusive block */
 
 		public string breadcrumb { get; set; } = "{{sequence_item.load.csv}}{{sequence_item.load.json}}";
+		public Save save { get; set; }
+		public List<Save> saves { get; set; }
 	}
 
 	//public class HttpSave : Save
@@ -187,7 +200,7 @@ end";
 
 	//	//public string response_info_filename;
 
- // //      public string request_content_filename { get; set; }
+	// //      public string request_content_filename { get; set; }
 	//	//public bool request_content_is_binary { get; set; }
 	//	//public string response_content_filename { get; set; }
 	//	//public bool response_content_is_binary { get; set; }
@@ -209,8 +222,6 @@ end";
 		//	 request_content_as_text # - The request body as text
 		//   request_content_as_binary # - The request body as binary
 		public Save save { get; set; }
-		public Save[] saves { get; set; }
-
-
+		public List<Save> saves { get; set; }
 	}
 }

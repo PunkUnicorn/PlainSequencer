@@ -54,7 +54,7 @@ namespace PactTests_ClosedTests
             int testPort = GetAvailablePort();
 
             string yamlContents = $@"---
-sequence_items:
+sequence:
   - name: load-yaml-expect-success
     http:
       method: GET
@@ -131,7 +131,7 @@ sequence_items:
             */
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     new SequenceItem
                     {
                         name = "first-and-only",
@@ -207,7 +207,7 @@ sequence_items:
 
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     /* First
                      * Get a list of ids, which will be a list of one id. 
                      * For each of these (that is, for the list of one) use that id in the next request */
@@ -310,7 +310,7 @@ sequence_items:
 
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     /* First
                      * Get a complex object with a nested array */
                     new SequenceItem
@@ -417,7 +417,7 @@ sequence_items:
 
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     /* First */
                     new SequenceItem
                     {
@@ -519,7 +519,7 @@ sequence_items:
             var testYamlSequence = new SequenceScript
             {
                 output_after_failure = outputDespiteErrors,
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     /* First */
                     new SequenceItem
                     {
@@ -630,7 +630,7 @@ sequence_items:
             File.WriteAllText(t.Filename, "colA,colB,colC\nrow1a,row1b,row1c\nrow2a,row2b,row2c");
             var testYamlSequence = new SequenceScript
             {
-                sequence_items = new List<SequenceItem> {
+                sequence = new List<SequenceItem> {
                     /* First - http get */
                     new SequenceItem
                     {

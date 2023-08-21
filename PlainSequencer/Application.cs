@@ -58,8 +58,8 @@ namespace PlainSequencer
                 return false;
 
             var cancellationToken = new CancellationToken();
-            var firstSequenceItem = script.sequence_items.FirstOrDefault();
-            var nextSequenceItems = script.sequence_items.Skip(1).ToArray();
+            var firstSequenceItem = script.sequence.FirstOrDefault();
+            var nextSequenceItems = script.sequence.Skip(1).ToArray();
 
             const int defaultClientTimeoutSeconds = 90;
             httpClientProvider.Client.Timeout = TimeSpan.FromSeconds(script.client_timeout_seconds ?? defaultClientTimeoutSeconds);
@@ -146,10 +146,10 @@ namespace PlainSequencer
             if (!(Script?.fail_hole?.disable_stderr??false))
                 outputter.ErrorLine(Scriban.ScribanUtil.ScribanParse(Script?.fail_hole?.stderr_template ?? $"{new SequenceScript.FailHole().stderr_template}", scribanModel));
 
-            if (!Script?.fail_hole?.fail_to_sequence_items ?? false)
+            if (!Script?.fail_hole?.fail_to_sequence ?? false)
                 return;
 
-            var scriptHole = Script?.fail_hole?.sequence_for_failures ?? new List<SequenceItem>();
+            var scriptHole = Script?.fail_hole?.sequence ?? new List<SequenceItem>();
             if (scriptHole.Any())
             {
                 var action = itemActionBuilderFactory.Fetch(null, scribanModel, scriptHole.First(), scriptHole.Skip(1).ToArray());

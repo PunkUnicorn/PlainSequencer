@@ -94,10 +94,10 @@ namespace PlainSequencer.SequenceItemActions
             {
                 this.WorkingBody = ScribanUtil.ScribanParse(this.sequenceItem.http.body, scribanModel);
 
-                if (this.sequenceItem.http.save.filename != null)
-                {
-                    SaveTextRequest(scribanModel, WorkingBody);
-                }
+                //if (this.sequenceItem.http.save.filename != null)
+                //{
+                //    SaveTextRequest(scribanModel, WorkingBody);
+                //}
             }
 
             // Process the response content
@@ -116,18 +116,19 @@ namespace PlainSequencer.SequenceItemActions
             return workingUri;
         }
 
-        private void SaveTextRequest(object scribanModel, string workingBody)
-        {
-            var saveBodyFilename = ScribanUtil.ScribanParse(this.sequenceItem.http.save.filename, scribanModel);
-            var saveBodyPath = Path.GetDirectoryName(saveBodyFilename);
-            if (!Directory.Exists(saveBodyPath))
-                Directory.CreateDirectory(saveBodyPath);
+        //private void SaveTextRequest(object scribanModel, string workingBody)
+        //{
+        //    var saveBodyFilename = ScribanUtil.ScribanParse(this.sequenceItem.http.save.filename, scribanModel);
+        //    var saveBodyPath = Path.GetDirectoryName(saveBodyFilename);
+        //    if (!Directory.Exists(saveBodyPath))
+        //        Directory.CreateDirectory(saveBodyPath);
 
-            File.WriteAllText(saveBodyFilename, workingBody);
-        }
+        //    File.WriteAllText(saveBodyFilename, workingBody);
+        //}
 
         private void SaveResponseContentsEtc(dynamic responseModel, HttpResponseMessage httpResponse, long responseContentLength, string responseContent)
         {
+            // Replace this with DoInlineSaveAsync(...), but take some or all of this code and use it in DoInlineSaveAsync(...)
             if (this.sequenceItem?.http?.save == null)
                 return;
 
@@ -136,7 +137,7 @@ namespace PlainSequencer.SequenceItemActions
             saveModelDict.Add("response", responseModel);
             saveModelDict.Add("unique_string", Guid.NewGuid().ToString());
 
-            var folderSaveName = this.sequenceItem.http.save?.folder ?? "";
+            var folderSaveName = this.sequenceItem.http.save?.working_directory ?? "";
             var saveTo = ScribanUtil.ScribanParse(folderSaveName, saveModel);
 
             var contentSaveName = this.sequenceItem.http.save?.filename ?? "";
@@ -163,6 +164,7 @@ namespace PlainSequencer.SequenceItemActions
                 var nonContentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(responseSaveName, saveModel));
                 this.logProgress?.Progress(this, $" saving response info to '{nonContentFn}'...", SequenceProgressLogLevel.Diagnostic);
 
+                // Yeah,... add these to the scriban model and then they can template out whatever save they want
                 var nonContent = new
                 {
                     httpResponse.StatusCode,

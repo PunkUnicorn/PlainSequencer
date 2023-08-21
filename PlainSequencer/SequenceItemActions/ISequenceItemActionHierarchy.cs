@@ -18,8 +18,6 @@ namespace PlainSequencer.SequenceItemActions
 
         ISequenceItemActionHierarchy[] GetParents();
 
-        //string[] GetParentsNames();
-
         int PeerIndex { get; }
 
         string FullAncestryName { get; }

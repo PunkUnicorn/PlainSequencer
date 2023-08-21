@@ -24,6 +24,11 @@ namespace PlainSequencer.SequenceItemActions
 
         string SequenceDiagramKey { get; }
 
+        // https://graphviz.org/Gallery/directed/git.html
+        // https://graphviz.org/Gallery/neato/ER.html
+        // https://graphviz.org/Gallery/twopi/happiness.html
+        //object GetCallGraph();
+
         DateTime Started { get; }
 
         DateTime Finished { get; }
