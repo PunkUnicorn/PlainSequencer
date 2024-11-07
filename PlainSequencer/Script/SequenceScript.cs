@@ -185,6 +185,8 @@ end";
 		/// JSON file to load
 		/// </summary>
 		public string json { get; set; }
+		public string text { get; set; }
+		public string binary { get; set; }
 		/* End of mutually exclusive block */
 
 		public string breadcrumb { get; set; } = "{{sequence_item.load.csv}}{{sequence_item.load.json}}";

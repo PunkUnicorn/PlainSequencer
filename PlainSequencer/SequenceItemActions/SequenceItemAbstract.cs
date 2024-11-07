@@ -27,7 +27,9 @@ namespace PlainSequencer.SequenceItemActions
         protected readonly SequenceItem sequenceItem;
         protected readonly int peerIndex;
 
-        public string LiteralResponse { get; protected set; }
+        public byte[] BytesResponse { get; protected set; }
+
+        public string TextResponse { get; protected set; }
 
         public object ActionResult { get; protected set; }
 
@@ -172,9 +174,6 @@ namespace PlainSequencer.SequenceItemActions
                     var sir = (ISequenceItemResult)node;
                     soloProgress.StartItem(sia);
                     var jsonFormatted = JsonConvert.SerializeObject(sir.ActionResult, Formatting.Indented);
-                    //var desc = new String(jsonFormatted.Take(50).ToArray());
-                    //if (jsonFormatted.Length > 50)
-                    //    desc += "\\n...";
 
                     soloProgress.Progress(sia, jsonFormatted, SequenceProgressLogLevel.Diagnostic);
 

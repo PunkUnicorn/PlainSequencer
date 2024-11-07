@@ -47,7 +47,8 @@ namespace PlainSequencer.SequenceItemActions
 
                     var scribanProcessedTemplate = ScribanUtil.ScribanParse(this.sequenceItem.transform.new_model_template, scribanModel);
 
-                    LiteralResponse = scribanProcessedTemplate;
+                    TextResponse = scribanProcessedTemplate;
+                    BytesResponse = GetBytes(TextResponse);
                     this.logProgress?.Progress(this, $"Transformed to:\n{scribanProcessedTemplate}", SequenceProgressLogLevel.Diagnostic);
 
                     if (this.sequenceItem.transform.new_model_is_plain_text)

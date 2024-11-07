@@ -61,8 +61,8 @@ namespace PlainSequencer.SequenceItemActions
 					var execReturn = ProcessExecute(this.sequenceItem.run, workingExec, workingArgs, itsStandardInput);
 					var responseContentLength = execReturn?.Length ?? 0;
 					var responseContent = execReturn;
-					LiteralResponse = execReturn;
-
+					TextResponse = execReturn;
+					BytesResponse = GetBytes(TextResponse);
 					var responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, execReturn);
 					ActionResult = responseModel;
 

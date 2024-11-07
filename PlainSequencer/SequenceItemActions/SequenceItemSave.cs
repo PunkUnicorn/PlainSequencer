@@ -6,7 +6,6 @@ using PlainSequencer.Script;
 using PlainSequencer.SequenceItemSupport;
 using Polly;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,9 +41,10 @@ namespace PlainSequencer.SequenceItemActions
 
                     var scribanModel = MakeScribanModel();
 
-                    LiteralResponse = ScribanUtil.ScribanParse(this.sequenceItem.save.content_template, scribanModel);
+                    TextResponse = ScribanUtil.ScribanParse(this.sequenceItem.save.content_template, scribanModel);
+                    BytesResponse = GetBytes(TextResponse);
 
-                    var scribanProcessedFilename =  await DoSaveAsync(this.sequenceItem.save, LiteralResponse, scribanModel);
+                    var scribanProcessedFilename =  await DoSaveAsync(this.sequenceItem.save, TextResponse, scribanModel);
 
                     this.logProgress?.Progress(this, $"Saved {scribanProcessedFilename}", SequenceProgressLogLevel.Diagnostic);
 
@@ -57,6 +57,28 @@ namespace PlainSequencer.SequenceItemActions
 
         internal static async Task<string> DoSaveAsync(Save save, object content, object scribanModel)
         {
+            var folderSaveName = save?.working_directory ?? "";
+            var saveTo = ScribanUtil.ScribanParse(folderSaveName, scribanModel);
+
+            var contentSaveName = save?.filename ?? "";
+            if (contentSaveName.Trim().Length > 0)
+            {
+                var contentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(contentSaveName, scribanModel));
+                //this.logProgress?.Progress(this, $" saving content to '{contentFn }'...", SequenceProgressLogLevel.Diagnostic);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(contentFn));
+
+                if (save.is_content_binary)
+                {
+                    if (httpResponse != null)
+                        using (Stream output = File.OpenWrite(contentFn))
+                        { Task.WaitAll(httpResponse.Content.CopyToAsync(output)); }
+                }
+                else
+                    File.WriteAllText(contentFn, responseContent);
+            }
+
+
             var filename = ScribanUtil.ScribanParse(save.filename, scribanModel);
 
             if (save.is_content_binary)

@@ -55,7 +55,8 @@ namespace PlainSequencer.SequenceItemActions
                     var scribanModel = MakeScribanModel();
 
                     var result = this.sequenceItem.check.IsPass(scribanModel);
-                    LiteralResponse = result.ToString();
+                    TextResponse = result.ToString();
+                    BytesResponse = GetBytes(TextResponse);
                     ActionResult = this.model;
 
                     if (result)

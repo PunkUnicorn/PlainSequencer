@@ -70,12 +70,13 @@ namespace PlainSequencer.SequenceItemActions
                         ? (await http_response?.Content?.ReadAsStringAsync())
                         : string.Empty;
 
-                    LiteralResponse = responseContent;
+                    TextResponse = responseContent;
+                    BytesResponse = await http_response?.Content?.ReadAsByteArrayAsync();
 
                     this.logProgress?.DataInProgress(this, $" received {responseContentLength} bytes...", SequenceProgressLogLevel.Diagnostic);
                     dynamic responseModel = SequenceItemStatic.GetResponseItems(this.logProgress, this, responseContent);
 
-                    SaveResponseContentsEtc(responseModel, http_response, responseContentLength, responseContent);
+                    await SaveResponseContentsEtcAsync(responseModel, http_response, responseContentLength, responseContent);
 
                     ActionResult = responseModel;
                     return ActionResult;
@@ -126,59 +127,72 @@ namespace PlainSequencer.SequenceItemActions
         //    File.WriteAllText(saveBodyFilename, workingBody);
         //}
 
-        private void SaveResponseContentsEtc(dynamic responseModel, HttpResponseMessage httpResponse, long responseContentLength, string responseContent)
+        private async Task SaveResponseContentsEtcAsync(dynamic content, HttpResponseMessage httpResponse, long responseContentLength, string responseContent)
         {
-            // Replace this with DoInlineSaveAsync(...), but take some or all of this code and use it in DoInlineSaveAsync(...)
-            if (this.sequenceItem?.http?.save == null)
-                return;
+            //// Replace this with DoInlineSaveAsync(...), but take some or all of this code and use it in DoInlineSaveAsync(...)
+            //if (this.sequenceItem?.http?.save == null)
+            //    return;
 
             var saveModel = MakeScribanModel();
             var saveModelDict = (IDictionary<string, object>)saveModel;
+            var responseModel = new
+            {
+                httpResponse.StatusCode,
+                httpResponse.Headers,
+                httpResponse.ReasonPhrase,
+                httpResponse.IsSuccessStatusCode,
+                //httpResponse.TrailingHeaders,
+                httpResponse.RequestMessage,
+                ContentLength = responseContentLength,
+                Content = content
+            };
             saveModelDict.Add("response", responseModel);
-            saveModelDict.Add("unique_string", Guid.NewGuid().ToString());
+            //saveModelDict.Add("unique_string", Guid.NewGuid().ToString());
 
-            var folderSaveName = this.sequenceItem.http.save?.working_directory ?? "";
-            var saveTo = ScribanUtil.ScribanParse(folderSaveName, saveModel);
+            await DoInlineSaveAsync(content, saveModel, sequenceItem.http.save, sequenceItem.http.saves);
 
-            var contentSaveName = this.sequenceItem.http.save?.filename ?? "";
-            if (contentSaveName.Trim().Length > 0)
-            {
-                var contentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(contentSaveName, saveModel));
-                this.logProgress?.Progress(this, $" saving content to '{contentFn }'...", SequenceProgressLogLevel.Diagnostic);
+            //var folderSaveName = this.sequenceItem.http.save?.working_directory ?? "";
+            //var saveTo = ScribanUtil.ScribanParse(folderSaveName, saveModel);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(contentFn));
+            //var contentSaveName = this.sequenceItem.http.save?.filename ?? "";
+            //if (contentSaveName.Trim().Length > 0)
+            //{
+            //    var contentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(contentSaveName, saveModel));
+            //    this.logProgress?.Progress(this, $" saving content to '{contentFn }'...", SequenceProgressLogLevel.Diagnostic);
 
-                if (this.sequenceItem.http.save.is_content_binary)
-                {
-                    if (httpResponse != null) 
-                        using (Stream output = File.OpenWrite(contentFn)) 
-                            { Task.WaitAll(httpResponse.Content.CopyToAsync(output)); }
-                }
-                else
-                    File.WriteAllText(contentFn, responseContent);
-            }
+            //    Directory.CreateDirectory(Path.GetDirectoryName(contentFn));
 
-            var responseSaveName = this.sequenceItem.http.save?.filename ?? "";
-            if (httpResponse != null && responseSaveName.Trim().Length > 0)
-            {
-                var nonContentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(responseSaveName, saveModel));
-                this.logProgress?.Progress(this, $" saving response info to '{nonContentFn}'...", SequenceProgressLogLevel.Diagnostic);
+            //    if (this.sequenceItem.http.save.is_content_binary)
+            //    {
+            //        if (httpResponse != null) 
+            //            using (Stream output = File.OpenWrite(contentFn)) 
+            //                { Task.WaitAll(httpResponse.Content.CopyToAsync(output)); }
+            //    }
+            //    else
+            //        File.WriteAllText(contentFn, responseContent);
+            //}
 
-                // Yeah,... add these to the scriban model and then they can template out whatever save they want
-                var nonContent = new
-                {
-                    httpResponse.StatusCode,
-                    httpResponse.Headers,
-                    httpResponse.ReasonPhrase,
-                    httpResponse.IsSuccessStatusCode,
-                    //httpResponse.TrailingHeaders,
-                    httpResponse.RequestMessage,
-                    ContentLength = responseContentLength
-                };
+            //var responseSaveName = this.sequenceItem.http.save?.filename ?? "";
+            //if (httpResponse != null && responseSaveName.Trim().Length > 0)
+            //{
+            //    var nonContentFn = Path.Combine(saveTo, ScribanUtil.ScribanParse(responseSaveName, saveModel));
+            //    this.logProgress?.Progress(this, $" saving response info to '{nonContentFn}'...", SequenceProgressLogLevel.Diagnostic);
 
-                Directory.CreateDirectory(Path.GetDirectoryName(nonContentFn));
-                File.WriteAllText(nonContentFn, JsonConvert.SerializeObject(nonContent));
-            }
+            //    // Yeah,... add these to the scriban model and then they can template out whatever save they want
+            //    var nonContent = new
+            //    {
+            //        httpResponse.StatusCode,
+            //        httpResponse.Headers,
+            //        httpResponse.ReasonPhrase,
+            //        httpResponse.IsSuccessStatusCode,
+            //        //httpResponse.TrailingHeaders,
+            //        httpResponse.RequestMessage,
+            //        ContentLength = responseContentLength
+            //    };
+
+            //    Directory.CreateDirectory(Path.GetDirectoryName(nonContentFn));
+            //    File.WriteAllText(nonContentFn, JsonConvert.SerializeObject(nonContent));
+            //}
         }
 
         private async Task<HttpResponseMessage> SortOutHttpMethodAndReturnResultAsync(int? instantRetryCount, HttpRequestMessage request, string method, string mediaType, string workingBody)

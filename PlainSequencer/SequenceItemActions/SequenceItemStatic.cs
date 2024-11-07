@@ -101,6 +101,7 @@ namespace PlainSequencer.SequenceItemActions
 
         public static async Task DoInlineSaveAsync(object content, object scribanModel, Save save, IEnumerable<Save> saves)
         {
+            //change it so it dump saves the bytes, see if that works?
             if (save is not null)
                 await SequenceItemSave.DoSaveAsync(save, content, scribanModel);
 
@@ -140,6 +141,23 @@ namespace PlainSequencer.SequenceItemActions
                         siRun.BlankResult();
                 }
             }
+        }
+
+
+        // https://stackoverflow.com/questions/472906/how-do-i-get-a-consistent-byte-representation-of-strings-in-c-sharp-without-manu
+        public static byte[] GetBytes(string str)
+        {
+            byte[] bytes = new byte[str.Length * sizeof(char)];
+            System.Buffer.BlockCopy(str.ToCharArray(), 0, bytes, 0, bytes.Length);
+            return bytes;
+        }
+
+        // Do NOT use on arbitrary bytes; only use on GetBytes's output on the SAME system
+        public static string GetString(byte[] bytes)
+        {
+            char[] chars = new char[bytes.Length / sizeof(char)];
+            System.Buffer.BlockCopy(bytes, 0, chars, 0, bytes.Length);
+            return new string(chars);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace PlainSequencer.SequenceItemActions
 
         Exception Exception { get; }
 
-        string LiteralResponse { get; }
+        string TextResponse { get; }
 
         object ActionResult { get; }
 

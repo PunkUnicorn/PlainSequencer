@@ -57,16 +57,35 @@ namespace PlainSequencer.SequenceItemActions
                         stringContent = LoadJson(scribanModel);
                         defaultVariableName = "json";
                     }
+                    else if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.text))
+                    {
+                        stringContent = File.ReadAllText(this.sequenceItem.load.text);
+                        defaultVariableName = "text";
+                    }
+
+                    dynamic passData = null;
+                    if (stringContent != null)
+                    {
+                        TextResponse = stringContent;
+                        BytesResponse = GetBytes(TextResponse);
+                        passData = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);
+                        ActionResult = this.model;
+                        await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.load.save, sequenceItem.load.saves);
+                    }
+                    else if (!string.IsNullOrWhiteSpace(this.sequenceItem.load.binary))
+                    {
+                        var binaryContent = File.ReadAllBytes(this.sequenceItem.load.binary);
+                        BytesResponse = binaryContent;
+                        TextResponse = $"{binaryContent.Length} bytes of binary content."; //Base64 encoded???
+                        passData = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);
+                        ActionResult = this.model;
+                        await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.load.save, sequenceItem.load.saves);
+
+                        defaultVariableName = "binary";
+                    }
                     else
-                        throw new InvalidOperationException("Neither load sections (csv, json) are populated.");
+                        throw new InvalidOperationException("There are no populated load sections.");
 
-                    LiteralResponse = stringContent;
-
-                    dynamic passData = SequenceItemStatic.GetResponseItems(this.logProgress, this, stringContent);
-
-                    ActionResult = this.model;
-
-                    await DoInlineSaveAsync(ActionResult, scribanModel, sequenceItem.load.save, sequenceItem.load.saves);
 
                     NewVariables.Add(this.sequenceItem.load.variable_name ?? defaultVariableName, passData);
 

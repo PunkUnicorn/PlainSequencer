@@ -156,7 +156,7 @@ namespace PlainSequencer
                 var failScriptResult = await action.ActionAsync(async (ab, mod, can) => Console.Error.WriteLine($"{ab.Name} - {ab.FailMessage}"), cancellationToken);
 
                 if (!Script?.fail_hole?.disable_stderr ?? false)
-                    outputter.ErrorLine(((ISequenceItemResult)failScriptResult).LiteralResponse);
+                    outputter.ErrorLine(((ISequenceItemResult)failScriptResult).TextResponse);
             }
         }
     }
